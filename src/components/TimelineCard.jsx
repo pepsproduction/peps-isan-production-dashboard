@@ -1,6 +1,7 @@
 import { Building2, Copy, Images, MapPin, Navigation } from 'lucide-react'
 import { makeMapsUrl } from '../utils/maps'
 import { buildTimelineCopy } from '../utils/copy'
+import { formatThaiDate } from '../utils/date'
 import LinkButton from './LinkButton'
 import StatusBadge from './StatusBadge'
 
@@ -12,7 +13,7 @@ export default function TimelineCard({ item, communities = [], onCopy, onStorybo
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-peps">{item.batch || 'ชุดงาน'}</p>
-          <h3 className="mt-1 text-xl font-bold text-white">{item.date} <span className="text-zinc-400">({item.day})</span></h3>
+          <h3 className="mt-1 text-xl font-bold text-white">{formatThaiDate(item.date, item.day)}</h3>
         </div>
         <div className="flex flex-wrap gap-2">
           <StatusBadge status={item.status} />

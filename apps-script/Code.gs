@@ -440,7 +440,13 @@ function getSheetRows_(sheetName) {
     for (let c = 0; c < headers.length; c += 1) {
       const header = headers[c]
       const display = displayValues[r][c]
-      row[header] = display !== '' ? display : values[r][c]
+      const raw = values[r][c]
+      if (isDateHeader_(header) && Object.prototype.toString.call(raw) === '[object Date]' && !isNaN(raw)) {
+        row[header] = raw
+        row[header + '_display'] = display
+      } else {
+        row[header] = display !== '' ? display : raw
+      }
       const url = extractUrl_(formulas[r][c], richTexts[r][c])
       if (url) row[header + '_url'] = url
     }
@@ -514,10 +520,76 @@ function normalizeDate_(value) {
   if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value)) {
     return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd')
   }
-  const text = String(value)
+  const text = String(value).trim()
+  const iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
+  if (iso) return iso[1] + '-' + pad2_(iso[2]) + '-' + pad2_(iso[3])
+
+  const thaiMonth = parseThaiMonth_(text)
+  if (thaiMonth) {
+    const numbers = text.match(/\d+/g) || []
+    if (numbers.length >= 2) {
+      const year = normalizeYear_(numbers[numbers.length - 1])
+      if (year) return year + '-' + pad2_(thaiMonth) + '-' + pad2_(numbers[0])
+    }
+  }
+
+  const slash = text.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/)
+  if (slash) {
+    const year = normalizeYear_(slash[3].length === 2 ? '20' + slash[3] : slash[3])
+    if (year) return year + '-' + pad2_(slash[2]) + '-' + pad2_(slash[1])
+  }
+
   const date = new Date(text)
   if (!isNaN(date)) return Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy-MM-dd')
   return text
+}
+
+function isDateHeader_(header) {
+  return /^(วันที่|วันที่ไป|date)$/i.test(String(header || '').trim())
+}
+
+function pad2_(value) {
+  return String(value).padStart(2, '0')
+}
+
+function normalizeYear_(year) {
+  const numericYear = Number(year)
+  if (!isFinite(numericYear)) return null
+  return numericYear > 2400 ? numericYear - 543 : numericYear
+}
+
+function parseThaiMonth_(text) {
+  const months = {
+    'ม.ค.': 1,
+    'มกราคม': 1,
+    'ก.พ.': 2,
+    'กุมภาพันธ์': 2,
+    'มี.ค.': 3,
+    'มีนาคม': 3,
+    'เม.ย.': 4,
+    'เมษายน': 4,
+    'พ.ค.': 5,
+    'พฤษภาคม': 5,
+    'มิ.ย.': 6,
+    'มิถุนายน': 6,
+    'ก.ค.': 7,
+    'กรกฎาคม': 7,
+    'ส.ค.': 8,
+    'สิงหาคม': 8,
+    'ก.ย.': 9,
+    'กันยายน': 9,
+    'ต.ค.': 10,
+    'ตุลาคม': 10,
+    'พ.ย.': 11,
+    'พฤศจิกายน': 11,
+    'ธ.ค.': 12,
+    'ธันวาคม': 12,
+  }
+  const names = Object.keys(months)
+  for (let i = 0; i < names.length; i += 1) {
+    if (String(text || '').indexOf(names[i]) !== -1) return months[names[i]]
+  }
+  return null
 }
 
 function matchCommunityIdsFromText_(communities, text) {

@@ -1,4 +1,5 @@
 import { buildStoryboardIndex, storyboardStatusFromCount } from './storyboard'
+import { toDateInputValue } from './date'
 
 export function compactText(value) {
   return String(value ?? '')
@@ -54,7 +55,9 @@ export function normalizeCommunity(row = {}) {
     checkNotes: getAny(row, ['checkNotes', 'ข้อควรเช็ค', 'M']),
     contactName: getAny(row, ['contactName', 'ผู้ประสานงานในพื้นที่', 'N']),
     contactPhone: getAny(row, ['contactPhone', 'เบอร์โทร', 'phone']),
-    shootDate: getAny(row, ['shootDate', 'วันที่ไป', 'O']),
+    shootDate:
+      toDateInputValue(getAny(row, ['shootDate', 'วันที่ไป', 'O'])) ||
+      getAny(row, ['shootDate', 'วันที่ไป', 'O']),
     startTime: getAny(row, ['startTime', 'ช่วงเวลาเริ่มถ่าย', 'P']),
     endTime: getAny(row, ['endTime', 'ช่วงเวลาถ่ายจบ', 'Q']),
     lodging: getAny(row, ['lodging', 'ที่พัก', 'R']),
@@ -68,6 +71,18 @@ export function normalizeCommunity(row = {}) {
 
 export function normalizeAppData(raw = {}) {
   const communities = (raw.communities || []).map(normalizeCommunity)
+  const timeline = (raw.timeline || []).map((item) => ({
+    ...item,
+    date: toDateInputValue(item.date) || item.date,
+  }))
+  const lodging = (raw.lodging || []).map((item) => ({
+    ...item,
+    date: toDateInputValue(item.date) || item.date,
+  }))
+  const maps = (raw.maps || []).map((item) => ({
+    ...item,
+    date: toDateInputValue(item.date) || item.date,
+  }))
   const storyboardIndex = buildStoryboardIndex(raw.storyboardFolders || [], communities)
   const communitiesWithStoryboard = communities.map((community) => {
     const folder = storyboardIndex.byCommunityId.get(community.id)
@@ -83,14 +98,14 @@ export function normalizeAppData(raw = {}) {
   return {
     ...raw,
     communities: communitiesWithStoryboard,
-    timeline: raw.timeline || [],
+    timeline,
     checklist: raw.checklist || [],
-    lodging: raw.lodging || [],
-    maps: raw.maps || [],
+    lodging,
+    maps,
     references: raw.references || [],
     storyboardFolders: raw.storyboardFolders || [],
     unmatchedStoryboardFolders: storyboardIndex.unmatched,
-    stats: computeStats({ ...raw, communities: communitiesWithStoryboard }),
+    stats: computeStats({ ...raw, communities: communitiesWithStoryboard, timeline, lodging, maps }),
   }
 }
 

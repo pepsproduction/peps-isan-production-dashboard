@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Film, Hotel, Images, MapPinned, Users } from 'lucide-react'
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import StatCard from '../components/StatCard'
@@ -35,20 +35,29 @@ function ChartCard({ title, children }) {
 }
 
 function DashboardToday({ timeline, copyText, onNavigate }) {
-  const dates = uniqueDates(timeline)
+  const dates = useMemo(() => uniqueDates(timeline), [timeline])
   const [selectedDate, setSelectedDate] = useState(dates.includes(todayInput()) ? todayInput() : dates[0] || todayInput())
   const item = timeline.find((entry) => entry.date === selectedDate)
+
+  useEffect(() => {
+    if (dates.length && !dates.includes(selectedDate)) {
+      setSelectedDate(dates.includes(todayInput()) ? todayInput() : dates[0])
+    }
+  }, [dates, selectedDate])
 
   return (
     <section className="card p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-peps">Today View</p>
-          <h2 className="section-title">{formatThaiDate(selectedDate)}</h2>
+          <h2 className="section-title">{formatThaiDate(selectedDate, item?.day)}</h2>
         </div>
         <div className="flex gap-2">
           <select className="field min-w-44" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)}>
-            {dates.map((date) => <option key={date} value={date}>{formatThaiDate(date)}</option>)}
+            {dates.map((date) => {
+              const row = timeline.find((entry) => entry.date === date)
+              return <option key={date} value={date}>{formatThaiDate(date, row?.day)}</option>
+            })}
           </select>
           <button type="button" className="btn btn-primary" onClick={() => onNavigate('today')}>เปิด Today</button>
         </div>

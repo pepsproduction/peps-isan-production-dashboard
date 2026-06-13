@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Copy, Images, MapPin } from 'lucide-react'
 import LinkButton from '../components/LinkButton'
 import StatusBadge from '../components/StatusBadge'
@@ -18,6 +18,12 @@ export default function Today({ data, config, copyText, notify }) {
   const related = item ? communities.filter((community) => item.communityIds?.includes(community.id)) : []
   const storyboardTarget = related.find((community) => community.storyboardStatus !== 'missing') || related[0]
 
+  useEffect(() => {
+    if (dates.length && !dates.includes(selectedDate)) {
+      setSelectedDate(dates.includes(todayInput()) ? todayInput() : dates[0])
+    }
+  }, [dates, selectedDate])
+
   const openStoryboard = async () => {
     if (!storyboardTarget) return
     try {
@@ -36,7 +42,10 @@ export default function Today({ data, config, copyText, notify }) {
           <p className="muted">เลือกวันที่เพื่อดูคิวถ่าย เดินทาง ที่พัก และข้อความสรุปสำหรับส่งทีมงาน</p>
         </div>
         <select className="field min-w-56" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)}>
-          {dates.map((date) => <option key={date} value={date}>{formatThaiDate(date)}</option>)}
+          {dates.map((date) => {
+            const row = timeline.find((entry) => entry.date === date)
+            return <option key={date} value={date}>{formatThaiDate(date, row?.day)}</option>
+          })}
         </select>
       </div>
 
@@ -45,7 +54,7 @@ export default function Today({ data, config, copyText, notify }) {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.16em] text-peps">{item.batch}</p>
-              <h2 className="mt-1 text-2xl font-bold text-white">{formatThaiDate(item.date)}</h2>
+              <h2 className="mt-1 text-2xl font-bold text-white">{formatThaiDate(item.date, item.day)}</h2>
             </div>
             <div className="flex flex-wrap gap-2">
               <StatusBadge status={item.status} />
