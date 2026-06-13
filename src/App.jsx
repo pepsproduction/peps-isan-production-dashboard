@@ -100,17 +100,22 @@ export default function App() {
     notify('คัดลอกข้อความแล้ว')
   }, [notify])
 
+  const serviceConfig = useMemo(
+    () => ({ ...config, demoMode: Boolean(config.demoMode || mode !== 'live') }),
+    [config, mode],
+  )
+
   const updateRecord = useCallback(async (action, payload) => {
-    const result = await sendUpdate(config, action, payload)
+    const result = await sendUpdate(serviceConfig, action, payload)
     notify(result.demo ? 'Demo Mode: จำลองการบันทึกแล้ว' : 'บันทึกกลับ Google Sheet แล้ว')
     await refreshData()
     return result
-  }, [config, notify, refreshData])
+  }, [serviceConfig, notify, refreshData])
 
   const pageProps = useMemo(
     () => ({
       data,
-      config,
+      config: serviceConfig,
       loading,
       error,
       mode,
@@ -120,7 +125,7 @@ export default function App() {
       copyText,
       notify,
     }),
-    [data, config, loading, error, mode, lastUpdated, refreshData, updateRecord, copyText, notify],
+    [data, serviceConfig, loading, error, mode, lastUpdated, refreshData, updateRecord, copyText, notify],
   )
 
   const pages = {
@@ -135,6 +140,7 @@ export default function App() {
     settings: (
       <Settings
         {...pageProps}
+        config={config}
         onSave={updateConfig}
         onClearCache={handleClearCache}
         onRefresh={() => refreshData({ manual: true })}
