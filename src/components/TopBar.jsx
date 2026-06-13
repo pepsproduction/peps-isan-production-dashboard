@@ -2,7 +2,7 @@ import { RefreshCw } from 'lucide-react'
 import { APP_NAME } from '../config'
 
 export default function TopBar({ mode, lastUpdated, onRefresh }) {
-  const modeLabel = mode === 'live' ? 'Live Sheet' : mode === 'cached' ? 'Cache' : 'Demo Mode'
+  const modeLabel = mode === 'live' ? 'Live Sheet' : mode === 'sheet' ? 'Google Sheet' : mode === 'cached' ? 'Cache' : 'Demo Mode'
   return (
     <header className="sticky top-0 z-30 border-b border-white/10 bg-ink/86 backdrop-blur-xl">
       <div className="flex min-h-16 items-center justify-between gap-3 px-4 md:px-6">

@@ -39,7 +39,6 @@ export default function StoryboardGallery({ communities = [], config, notify }) 
                 type="button"
                 className="block w-full text-left"
                 onClick={() => openCommunity(community)}
-                disabled={!hasStoryboard && !community.storyboardLink}
               >
                 <div className="flex aspect-video items-center justify-center bg-gradient-to-br from-zinc-900 via-zinc-800 to-black">
                   {loadingId === community.id ? (
@@ -62,7 +61,7 @@ export default function StoryboardGallery({ communities = [], config, notify }) 
                 </div>
               </button>
               <div className="flex gap-2 border-t border-white/10 p-3">
-                <LinkButton label="ดูในเว็บ" icon={Images} onClick={() => openCommunity(community)} disabled={!hasStoryboard && !community.storyboardLink} />
+                <LinkButton label="ดูในเว็บ" icon={Images} onClick={() => openCommunity(community)} />
                 {community.storyboardLink ? <LinkButton href={community.storyboardLink} label="เปิด Drive" icon={ExternalLink} /> : null}
               </div>
             </article>

@@ -109,6 +109,8 @@ function getCommunities_() {
     const community = getAny_(row, ['ชุมชน', 'community'])
     const mapsUrl = getAny_(row, ['Google Maps Search_url', 'mapsUrl', 'mapUrl'])
     const storyboardUrl = getAny_(row, ['Link Storyboard_url', 'storyboardLinkUrl'])
+    const contactRaw = getAny_(row, ['ผู้ประสานงานในพื้นที่', 'contactName'])
+    const contactPhone = getAny_(row, ['เบอร์โทร', 'contactPhone', 'phone']) || extractPhone_(contactRaw)
     const item = {
       id: buildCommunityId_(sequence, province, community),
       rowNumber: row._rowNumber,
@@ -126,8 +128,8 @@ function getCommunities_() {
       mapsSearch: getAny_(row, ['Google Maps Search', 'mapsSearch']),
       mapsUrl,
       checkNotes: getAny_(row, ['ข้อควรเช็ค', 'checkNotes']),
-      contactName: getAny_(row, ['ผู้ประสานงานในพื้นที่', 'contactName']),
-      contactPhone: getAny_(row, ['เบอร์โทร', 'contactPhone', 'phone']),
+      contactName: cleanContactName_(contactRaw),
+      contactPhone,
       shootDate: normalizeDate_(getAny_(row, ['วันที่ไป', 'shootDate'])),
       startTime: getAny_(row, ['ช่วงเวลาเริ่มถ่าย', 'startTime']),
       endTime: getAny_(row, ['ช่วงเวลาถ่ายจบ', 'endTime']),
@@ -160,11 +162,11 @@ function getTimeline_(communities) {
       afternoonTime: getAny_(row, ['เวลาบ่าย/เดินทาง', 'เวลาบ่าย', 'afternoonTime']),
       routeAssessment: getAny_(row, ['ประเมินเส้นทาง', 'routeAssessment']),
       feasibility: getAny_(row, ['ความเป็นไปได้', 'feasibility']),
-      lodging: getAny_(row, ['ที่พักคืนนี้', 'ที่พัก', 'lodging']),
-      nextMorning: getAny_(row, ['คิวเช้าถัดไป', 'nextMorning']),
+      lodging: getAny_(row, ['ที่พักตาม Master', 'ที่พักคืนนี้', 'lodging']),
+      nextMorning: getAny_(row, ['คิวเช้าที่พักรองรับ', 'คิวเช้าถัดไป', 'nextMorning']),
       notes: getAny_(row, ['หมายเหตุ', 'notes']),
-      afterShootToLodgingQuery: getAny_(row, ['หลังถ่ายจบ→ที่พัก', 'หลังถ่ายจบไปที่พัก', 'afterShootToLodgingQuery']),
-      lodgingToMorningQuery: getAny_(row, ['ที่พัก→จุดถ่ายเช้า', 'ที่พักไปจุดถ่ายเช้า', 'lodgingToMorningQuery']),
+      afterShootToLodgingQuery: getAny_(row, ['หลังถ่ายจบ→ที่พัก จาก Master_url', 'หลังถ่ายจบ→ที่พัก จาก Master', 'หลังถ่ายจบ→ที่พัก', 'หลังถ่ายจบไปที่พัก', 'afterShootToLodgingQuery']),
+      lodgingToMorningQuery: getAny_(row, ['ที่พัก→จุดถ่ายเช้า จาก Master_url', 'ที่พัก→จุดถ่ายเช้า จาก Master', 'ที่พัก→จุดถ่ายเช้า', 'ที่พักไปจุดถ่ายเช้า', 'lodgingToMorningQuery']),
       mapQuery: getAny_(row, ['Google Maps', 'แผนที่', 'mapQuery']),
       communityIds: matchCommunityIdsFromText_(communities, morningTitle + ' ' + afternoonTitle),
     }
@@ -191,6 +193,8 @@ function getChecklist_(communities) {
     const province = getAny_(row, ['จังหวัด', 'province'])
     const community = getAny_(row, ['ชุมชน', 'community'])
     const matched = communities.find((item) => normalize_(item.province) === normalize_(province) && normalize_(item.community) === normalize_(community))
+    const contactRaw = getAny_(row, ['ผู้ประสานงาน', 'ผู้ประสานงานในพื้นที่', 'contactName'])
+    const contactPhone = getAny_(row, ['เบอร์โทร', 'contactPhone', 'phone']) || extractPhone_(contactRaw)
     return {
       id: getAny_(row, ['id', 'ID']) || 'check-' + (index + 1),
       rowNumber: row._rowNumber,
@@ -199,8 +203,8 @@ function getChecklist_(communities) {
       community,
       status: getAny_(row, ['สถานะ', 'status', 'checklistStatus']) || 'ยังไม่ได้เช็ก',
       note: getAny_(row, ['หมายเหตุ', 'note']),
-      contactName: getAny_(row, ['ผู้ประสานงาน', 'ผู้ประสานงานในพื้นที่', 'contactName']),
-      contactPhone: getAny_(row, ['เบอร์โทร', 'contactPhone', 'phone']),
+      contactName: cleanContactName_(contactRaw),
+      contactPhone,
       extraCheck: getAny_(row, ['ข้อควรเช็คเพิ่มเติม', 'ข้อควรเช็ค', 'extraCheck']),
       shootingStatus: getAny_(row, ['สถานะถ่ายทำ', 'shootingStatus']) || 'ยังไม่ได้เช็ก',
     }
@@ -212,21 +216,28 @@ function getLodging_() {
   return getSheetRows_(SHEETS.lodging).map((row, index) => ({
     id: getAny_(row, ['id', 'ID']) || 'lodging-' + (index + 1),
     rowNumber: row._rowNumber,
+    sequence: getAny_(row, ['วันถ่ายลำดับ', 'ลำดับ', 'sequence']),
     date: normalizeDate_(getAny_(row, ['วันที่ไป', 'วันที่', 'date'])),
     province: getAny_(row, ['จังหวัด', 'province']),
     community: getAny_(row, ['ชุมชน/จุดถ่ายหลัก', 'ชุมชน', 'community']),
+    shootQuery: getAny_(row, ['คำค้นจุดถ่าย', 'shootQuery']),
     name: getAny_(row, ['ที่พักแนะนำ', 'ที่พัก', 'name']),
     type: getAny_(row, ['ประเภท', 'type']),
     rating: getAny_(row, ['คะแนน/รีวิว', 'rating']),
     address: getAny_(row, ['ที่อยู่/โซน', 'address']),
     phone: getAny_(row, ['โทร', 'เบอร์โทร', 'phone']),
+    mapsQuery: getAny_(row, ['ลิงก์ที่พัก Google Maps_url', 'ลิงก์ที่พัก Google Maps', 'เปิดที่พัก', 'Google Maps', 'mapsQuery']),
+    routeQuery: getAny_(row, ['ลิงก์เส้นทาง Google Maps_url', 'ลิงก์เส้นทาง Google Maps', 'routeQuery']),
+    travelTime: getAny_(row, ['ระยะทาง/เวลาเดินทาง', 'travelTime']),
     reason: getAny_(row, ['หมายเหตุการเลือก', 'reason']),
-    backup: getAny_(row, ['ตัวเลือกสำรอง', 'backup']),
+    backup: getAny_(row, ['ตัวเลือกสำรอง/ต้องเช็ค', 'ตัวเลือกสำรอง', 'backup']),
+    placeId: getAny_(row, ['Google Maps Place ID', 'placeId']),
+    beforeLodgingShoot: getAny_(row, ['จุดถ่ายก่อนเข้าที่พัก', 'beforeLodgingShoot']),
+    beforeLodgingTime: getAny_(row, ['เวลาถ่ายจบก่อนเข้าที่พัก', 'beforeLodgingTime']),
     nearMorning: getAny_(row, ['เช็กความใกล้กับคิวเช้า', 'nearMorning']),
     logic: getAny_(row, ['หมายเหตุ Logic', 'logic']),
-    mapsQuery: getAny_(row, ['เปิดที่พัก', 'Google Maps', 'mapsQuery']),
-    afterShootQuery: getAny_(row, ['หลังถ่ายจบ→ที่พัก', 'afterShootQuery']),
-    toMorningQuery: getAny_(row, ['ที่พัก→จุดถ่ายเช้า', 'toMorningQuery']),
+    afterShootQuery: getAny_(row, ['ลิงก์หลังถ่ายจบ→ที่พัก_url', 'ลิงก์หลังถ่ายจบ→ที่พัก', 'หลังถ่ายจบ→ที่พัก', 'afterShootQuery']),
+    toMorningQuery: getAny_(row, ['ลิงก์ที่พัก→จุดถ่ายเช้า_url', 'ลิงก์ที่พัก→จุดถ่ายเช้า', 'ที่พัก→จุดถ่ายเช้า', 'toMorningQuery']),
   }))
 }
 
@@ -236,12 +247,14 @@ function getMaps_() {
     id: getAny_(row, ['id', 'ID']) || 'map-' + (index + 1),
     rowNumber: row._rowNumber,
     type: getAny_(row, ['ประเภท', 'type']),
-    title: getAny_(row, ['ชื่อแผนที่', 'title', 'name']),
+    batch: getAny_(row, ['ชุด/วัน', 'batch']),
+    order: getAny_(row, ['ลำดับจุด', 'order']),
+    title: getAny_(row, ['จุดหมาย', 'ชื่อแผนที่', 'title', 'name']),
     date: normalizeDate_(getAny_(row, ['วันที่', 'date'])),
     province: getAny_(row, ['จังหวัด', 'province']),
     community: getAny_(row, ['ชุมชน', 'community']),
-    query: getAny_(row, ['คำค้น', 'query', 'Google Maps Search', 'Google Maps']),
-    url: getAny_(row, ['url', 'URL', 'Google Maps_url', 'Google Maps Search_url']),
+    query: getAny_(row, ['คำค้นที่ใช้', 'คำค้น', 'query', 'Google Maps Search', 'Google Maps']),
+    url: getAny_(row, ['Google Maps Link_url', 'Google Maps Link', 'url', 'URL', 'Google Maps_url', 'Google Maps Search_url']),
     description: getAny_(row, ['รายละเอียด', 'description', 'หมายเหตุ']),
   }))
 }
@@ -279,9 +292,18 @@ function getStoryboardImages_(params) {
     return { ok: false, status: 'missing', images: [], error: 'Community not found' }
   }
 
+  let folder = null
+  const linkedFolderId = extractDriveFolderId_(community.storyboardLink)
+  if (linkedFolderId) {
+    try {
+      folder = DriveApp.getFolderById(linkedFolderId)
+    } catch (err) {
+      folder = null
+    }
+  }
+
   const root = DriveApp.getFolderById(CONFIG.STORYBOARD_ROOT_FOLDER_ID)
   const folders = root.getFolders()
-  let folder = null
   while (folders.hasNext()) {
     const candidate = folders.next()
     const matched = matchFolderToCommunity_(candidate.getName(), [community])
@@ -457,12 +479,17 @@ function getSheetRows_(sheetName) {
 
 function extractUrl_(formula, richText) {
   if (formula) {
-    const match = formula.match(/HYPERLINK\("([^"]+)"/i)
+    const match = formula.match(/HYPERLINK\("([^"]+)"/i) || formula.match(/HYPERLINK\('([^']+)'/i)
     if (match) return match[1]
   }
   try {
     const url = richText && richText.getLinkUrl()
     if (url) return url
+    const runs = richText && richText.getRuns ? richText.getRuns() : []
+    for (let i = 0; i < runs.length; i += 1) {
+      const runUrl = runs[i].getLinkUrl()
+      if (runUrl) return runUrl
+    }
   } catch (err) {
     return ''
   }
@@ -499,6 +526,18 @@ function getAny_(row, keys) {
   for (let i = 0; i < keys.length; i += 1) {
     const value = row[keys[i]]
     if (value !== undefined && value !== null && value !== '') return value
+  }
+  const rowKeys = Object.keys(row || {})
+  for (let i = 0; i < keys.length; i += 1) {
+    const target = normalize_(keys[i])
+    if (!target) continue
+    for (let j = 0; j < rowKeys.length; j += 1) {
+      const normalizedKey = normalize_(rowKeys[j])
+      if (normalizedKey === target || normalizedKey.indexOf(target) !== -1 || normalizedKey.slice(-target.length) === target) {
+        const value = row[rowKeys[j]]
+        if (value !== undefined && value !== null && value !== '') return value
+      }
+    }
   }
   return ''
 }
@@ -624,6 +663,24 @@ function countImages_(folder) {
 
 function isSupportedImage_(mimeType) {
   return ['image/jpeg', 'image/png', 'image/webp'].indexOf(mimeType) !== -1
+}
+
+function extractDriveFolderId_(value) {
+  const text = String(value || '')
+  const folderMatch = text.match(/\/folders\/([a-zA-Z0-9_-]+)/)
+  if (folderMatch) return folderMatch[1]
+  const idMatch = text.match(/[?&]id=([a-zA-Z0-9_-]+)/)
+  if (idMatch) return idMatch[1]
+  return ''
+}
+
+function extractPhone_(value) {
+  const match = String(value || '').match(/(?:\+?66|0)[0-9\s().-]{7,}/)
+  return match ? match[0].replace(/[^\d+]/g, '') : ''
+}
+
+function cleanContactName_(value) {
+  return String(value || '').replace(/(?:\+?66|0)[0-9\s().-]{7,}/g, '').replace(/\s+/g, ' ').trim()
 }
 
 function extractOrder_(name) {

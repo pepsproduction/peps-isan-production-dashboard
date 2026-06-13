@@ -101,8 +101,8 @@ export default function App() {
   }, [notify])
 
   const serviceConfig = useMemo(
-    () => ({ ...config, demoMode: Boolean(config.demoMode || mode !== 'live') }),
-    [config, mode],
+    () => ({ ...config, demoMode: Boolean(config.demoMode) }),
+    [config],
   )
 
   const updateRecord = useCallback(async (action, payload) => {

@@ -1,5 +1,6 @@
 import { demoData, getDemoStoryboardImages } from '../demoData'
-import { normalizeAppData } from '../utils/normalize'
+import { normalizeAppData, normalizeThai } from '../utils/normalize'
+import { fetchPublicSheetData } from './googleSheetCsv'
 import { saveCachedData } from './localCache'
 
 function buildUrl(apiUrl, params = {}) {
@@ -30,17 +31,130 @@ async function postJson(apiUrl, payload) {
   return data
 }
 
+function communityKey(item = {}) {
+  return [item.sequence, item.province, item.community].map(normalizeThai).join('|')
+}
+
+function communityNameKey(item = {}) {
+  return [item.province, item.community].map(normalizeThai).join('|')
+}
+
+function timelineKey(item = {}) {
+  return [item.batch, item.morningTitle, item.afternoonTitle].map(normalizeThai).join('|')
+}
+
+function lodgingKey(item = {}) {
+  return [item.date, item.name, item.community].map(normalizeThai).join('|')
+}
+
+function mapKey(item = {}) {
+  return [item.type, item.batch, item.title, item.query].map(normalizeThai).join('|')
+}
+
+function isUrl(value) {
+  return /^https?:\/\//i.test(String(value || '').trim())
+}
+
+function preferUsableUrl(primary, fallback) {
+  if (isUrl(primary)) return primary
+  if (isUrl(fallback)) return fallback
+  return primary || fallback || ''
+}
+
+function enrichSheetDataWithApi(sheetData, apiData) {
+  if (!apiData) return sheetData
+  const apiCommunities = normalizeAppData({ communities: apiData.communities || [] }).communities
+  const byCommunity = new Map(apiCommunities.map((item) => [communityKey(item), item]))
+  const byCommunityName = new Map(apiCommunities.map((item) => [communityNameKey(item), item]))
+  const communities = (sheetData.communities || []).map((item) => {
+    const normalized = normalizeAppData({ communities: [item] }).communities[0]
+    const match = byCommunity.get(communityKey(normalized)) || byCommunityName.get(communityNameKey(normalized))
+    return {
+      ...item,
+      mapsUrl: preferUsableUrl(item.mapsUrl, match?.mapsUrl),
+      storyboardLink: preferUsableUrl(item.storyboardLink, match?.storyboardLink),
+      storyboardStatus: match?.storyboardStatus || item.storyboardStatus || '',
+    }
+  })
+
+  const apiTimeline = normalizeAppData({ timeline: apiData.timeline || [] }).timeline
+  const byTimeline = new Map(apiTimeline.map((item) => [timelineKey(item), item]))
+  const timeline = (sheetData.timeline || []).map((item) => {
+    const normalized = normalizeAppData({ timeline: [item] }).timeline[0]
+    const match = byTimeline.get(timelineKey(normalized))
+    return {
+      ...item,
+      afterShootToLodgingQuery: preferUsableUrl(item.afterShootToLodgingQuery, match?.afterShootToLodgingQuery),
+      lodgingToMorningQuery: preferUsableUrl(item.lodgingToMorningQuery, match?.lodgingToMorningQuery),
+      mapQuery: preferUsableUrl(item.mapQuery, match?.mapQuery),
+    }
+  })
+
+  const apiLodging = normalizeAppData({ lodging: apiData.lodging || [] }).lodging
+  const byLodging = new Map(apiLodging.map((item) => [lodgingKey(item), item]))
+  const lodging = (sheetData.lodging || []).map((item) => {
+    const normalized = normalizeAppData({ lodging: [item] }).lodging[0]
+    const match = byLodging.get(lodgingKey(normalized))
+    return {
+      ...item,
+      mapsQuery: preferUsableUrl(item.mapsQuery, match?.mapsQuery),
+      routeQuery: preferUsableUrl(item.routeQuery, match?.routeQuery),
+      afterShootQuery: preferUsableUrl(item.afterShootQuery, match?.afterShootQuery),
+      toMorningQuery: preferUsableUrl(item.toMorningQuery, match?.toMorningQuery),
+    }
+  })
+
+  const apiMaps = normalizeAppData({ maps: apiData.maps || [] }).maps
+  const byMap = new Map(apiMaps.map((item) => [mapKey(item), item]))
+  const maps = (sheetData.maps || []).map((item) => {
+    const normalized = normalizeAppData({ maps: [item] }).maps[0]
+    const match = byMap.get(mapKey(normalized))
+    return {
+      ...item,
+      url: preferUsableUrl(item.url, match?.url),
+    }
+  })
+
+  return {
+    ...apiData,
+    ...sheetData,
+    communities,
+    timeline,
+    lodging,
+    maps,
+    storyboardFolders: apiData.storyboardFolders || sheetData.storyboardFolders || [],
+  }
+}
+
 export async function fetchAppData(config) {
-  if (config.demoMode || !config.apiUrl) {
+  if (config.demoMode) {
     const normalized = normalizeAppData(demoData)
     saveCachedData(normalized)
     return { data: normalized, mode: 'demo' }
   }
 
-  const data = await getJson(config.apiUrl, { action: 'getAppData' })
-  const normalized = normalizeAppData(data)
+  if (!config.apiUrl) {
+    const sheetData = await fetchPublicSheetData().catch(() => null)
+    const normalized = normalizeAppData(sheetData || demoData)
+    saveCachedData(normalized)
+    return { data: normalized, mode: sheetData ? 'sheet' : 'demo' }
+  }
+
+  const [apiResult, sheetResult] = await Promise.allSettled([
+    getJson(config.apiUrl, { action: 'getAppData' }),
+    fetchPublicSheetData(),
+  ])
+  const data = apiResult.status === 'fulfilled' ? apiResult.value : null
+  const sheetData = sheetResult.status === 'fulfilled' ? sheetResult.value : null
+
+  if (!data && !sheetData) {
+    throw apiResult.reason || sheetResult.reason || new Error('โหลดข้อมูลไม่สำเร็จ')
+  }
+
+  const sourceData = sheetData ? enrichSheetDataWithApi(sheetData, data) : data
+  const normalized = normalizeAppData(sourceData)
   saveCachedData(normalized)
-  return { data: normalized, mode: 'live' }
+  return { data: normalized, mode: data ? 'live' : 'sheet' }
 }
 
 export async function fetchStoryboardImages(config, community) {
