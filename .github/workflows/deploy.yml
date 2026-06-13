@@ -1,8 +1,8 @@
 name: Deploy GitHub Pages
 
 on:
-  push:
-    branches: [main]
+  # Run manually while this account is locked from using hosted Actions.
+  # GitHub Pages is configured to serve the committed /docs fallback build.
   workflow_dispatch:
 
 permissions:

@@ -98,6 +98,13 @@ Workflow อยู่ที่ `.github/workflows/deploy.yml`
 
 โปรเจกต์ตั้ง `vite.config.js` เป็น `base: './'` เพื่อให้ใช้กับ GitHub Pages ได้ง่าย
 
+หมายเหตุ: ถ้าบัญชี GitHub ยังติด billing lock สำหรับ GitHub Actions ให้ใช้ `/docs` fallback ด้านล่างก่อน และ workflow จะตั้งเป็น manual-only เพื่อไม่ให้ push แล้วเกิด failed run ซ้ำ ๆ เมื่อ billing ปกติแล้วสามารถเพิ่ม trigger นี้กลับใน `.github/workflows/deploy.yml`:
+
+```yaml
+push:
+  branches: [main]
+```
+
 ถ้า GitHub Actions ถูกปิดหรือถูกล็อกชั่วคราว ให้ใช้ fallback แบบ branch source ได้:
 
 ```bash
