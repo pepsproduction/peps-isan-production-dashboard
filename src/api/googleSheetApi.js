@@ -164,9 +164,13 @@ export async function fetchStoryboardImages(config, community) {
   return getJson(config.apiUrl, {
     action: 'getStoryboardImages',
     communityId: community.id,
+    rowNumber: community.rowNumber,
     sequence: community.sequence,
     province: community.province,
     community: community.community,
+    communityName: community.community,
+    folderId: community.storyboardFolder?.id || community.storyboardFolder?.folderId,
+    storyboardLink: community.storyboardLink,
   })
 }
 

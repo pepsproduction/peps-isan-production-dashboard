@@ -26,7 +26,7 @@ export default function Checklist({ data, updateRecord }) {
     try {
       await updateRecord('batchUpdateFields', {
         sheetName: SHEETS.checklist,
-        rowKey: editing.communityId || editing.id,
+        rowKey: editing.rowNumber || editing._rowNumber || editing.communityId || editing.id,
         communityId: editing.communityId,
         fields: {
           status: form.checklistStatus,

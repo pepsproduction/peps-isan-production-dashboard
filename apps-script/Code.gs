@@ -283,16 +283,35 @@ function getStoryboardFolders_(communities) {
 
 function getStoryboardImages_(params) {
   const communities = getCommunities_()
-  const community =
+  const requestedCommunityName = params.community || params.communityName || params.name
+  let community =
     communities.find((item) => item.id === params.communityId) ||
+    communities.find((item) => String(item.rowNumber) === String(params.rowNumber)) ||
     communities.find((item) => String(item.sequence).padStart(2, '0') === String(params.sequence).padStart(2, '0')) ||
-    communities.find((item) => normalize_(item.province) === normalize_(params.province) && normalize_(item.community).indexOf(normalize_(params.community)) !== -1)
+    communities.find((item) => normalize_(item.province) === normalize_(params.province) && normalize_(item.community).indexOf(normalize_(requestedCommunityName)) !== -1) ||
+    communities.find((item) => normalize_(item.province) === normalize_(params.province) && normalize_(requestedCommunityName).indexOf(normalize_(item.community)) !== -1)
 
   if (!community) {
-    return { ok: false, status: 'missing', images: [], error: 'Community not found' }
+    community = {
+      id: params.communityId || buildCommunityId_(params.sequence, params.province, requestedCommunityName),
+      rowNumber: params.rowNumber || '',
+      sequence: params.sequence || '',
+      province: params.province || '',
+      community: requestedCommunityName || '',
+      storyboardLink: params.storyboardLink || '',
+    }
   }
 
   let folder = null
+  const requestedFolderId = params.folderId || extractDriveFolderId_(params.storyboardLink)
+  if (requestedFolderId) {
+    try {
+      folder = DriveApp.getFolderById(requestedFolderId)
+    } catch (err) {
+      folder = null
+    }
+  }
+
   const linkedFolderId = extractDriveFolderId_(community.storyboardLink)
   if (linkedFolderId) {
     try {
@@ -304,12 +323,14 @@ function getStoryboardImages_(params) {
 
   const root = DriveApp.getFolderById(CONFIG.STORYBOARD_ROOT_FOLDER_ID)
   const folders = root.getFolders()
-  while (folders.hasNext()) {
-    const candidate = folders.next()
-    const matched = matchFolderToCommunity_(candidate.getName(), [community])
-    if (matched) {
-      folder = candidate
-      break
+  if (!folder) {
+    while (folders.hasNext()) {
+      const candidate = folders.next()
+      const matched = matchFolderToCommunity_(candidate.getName(), [community])
+      if (matched) {
+        folder = candidate
+        break
+      }
     }
   }
 

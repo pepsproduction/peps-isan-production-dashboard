@@ -25,11 +25,11 @@ function Progress({ label, value, total, color = 'bg-peps' }) {
   )
 }
 
-function ChartCard({ title, children }) {
+function ChartCard({ title, children, height = 256 }) {
   return (
     <div className="card p-4">
       <h3 className="section-title">{title}</h3>
-      <div className="mt-4 h-64">{children}</div>
+      <div className="mt-4" style={{ height }}>{children}</div>
     </div>
   )
 }
@@ -93,7 +93,8 @@ export default function Dashboard({ data, loading, error, copyText, onNavigate }
   const communities = useMemo(() => data?.communities || [], [data])
   const timeline = useMemo(() => data?.timeline || [], [data])
   const provinceData = useMemo(() => groupCount(communities, 'province').slice(0, 8), [communities])
-  const contentData = useMemo(() => groupCount(communities, 'content').slice(0, 8), [communities])
+  const contentData = useMemo(() => groupCount(communities, 'content'), [communities])
+  const contentChartHeight = Math.max(320, contentData.length * 42)
   const dateData = useMemo(() => groupCount(timeline, 'date'), [timeline])
   const storyboardData = useMemo(
     () => groupCount(communities, (item) => item.storyboardStatus === 'complete' ? 'ครบ 6 รูป' : item.storyboardStatus === 'partial' ? 'ยังไม่ครบ' : 'ยังไม่มี'),
@@ -149,7 +150,7 @@ export default function Dashboard({ data, loading, error, copyText, onNavigate }
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
-        <ChartCard title="จำนวน Content แต่ละประเภท">
+        <ChartCard title="จำนวน Content แต่ละประเภท" height={contentChartHeight}>
           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <BarChart data={contentData} layout="vertical" margin={{ left: 24 }}>
               <XAxis type="number" tick={{ fill: '#a1a1aa', fontSize: 12 }} allowDecimals={false} />
