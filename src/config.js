@@ -1,0 +1,45 @@
+export const APP_NAME = 'Peps Isan Production Dashboard'
+export const SPREADSHEET_ID = '1NMs4jUsSxplcRPp5PZksmovwwMRpKoNFTodjNR495Uo'
+export const STORYBOARD_ROOT_FOLDER_ID = '1Tv_9Xlrw0XlEhS2sB9DPz8R99LvvrWnY'
+
+export const SHEETS = {
+  dashboard: 'Dashboard_สรุปงาน',
+  timeline: 'Timeline_ถ่ายทำ_เดินทาง_ที่พัก',
+  checklist: 'Checklist_ก่อนถ่าย',
+  communities: 'ชุมชน_Master',
+  references: 'Reference_แหล่งข้อมูล',
+  lodging: 'ที่พัก_Master',
+  maps: 'Map_Master',
+}
+
+export const DEFAULT_CONFIG = {
+  apiUrl: import.meta.env.VITE_APPS_SCRIPT_API_URL || '',
+  passcode: '',
+  mapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_EMBED_API_KEY || '',
+  demoMode: false,
+  autoRefreshMinutes: 0,
+  updatedBy: 'Production Dashboard',
+}
+
+export const NAV_ITEMS = [
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'today', label: 'Today' },
+  { id: 'timeline', label: 'Timeline' },
+  { id: 'communities', label: 'Communities' },
+  { id: 'storyboards', label: 'Storyboards' },
+  { id: 'checklist', label: 'Checklist' },
+  { id: 'lodging', label: 'Lodging' },
+  { id: 'maps', label: 'Maps' },
+  { id: 'settings', label: 'Settings' },
+]
+
+export const STATUS_OPTIONS = [
+  'พร้อม',
+  'ต้องเช็ก',
+  'รอยืนยัน',
+  'เสี่ยง',
+  'ยังไม่ได้เช็ก',
+  'กำลังถ่าย',
+  'ถ่ายเสร็จแล้ว',
+  'ต้องถ่ายซ่อม',
+]

@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  background: #0b0b0f;
+  font-family: Inter, 'Noto Sans Thai', ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255, 122, 0, 0.16), transparent 34rem),
+    linear-gradient(180deg, #0b0b0f 0%, #101016 42%, #0b0b0f 100%);
+  color: #f6f6f7;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@layer components {
+  .card {
+    @apply rounded-lg border border-white/10 bg-panel/90 shadow-glow;
+  }
+
+  .soft-card {
+    @apply rounded-lg border border-white/10 bg-panelSoft/80;
+  }
+
+  .page-title {
+    @apply text-2xl font-bold text-white md:text-3xl;
+  }
+
+  .section-title {
+    @apply text-lg font-semibold text-white;
+  }
+
+  .muted {
+    @apply text-sm text-zinc-400;
+  }
+
+  .field {
+    @apply w-full rounded-lg border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none transition focus:border-peps focus:ring-2 focus:ring-peps/20;
+  }
+
+  .btn {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold transition hover:border-peps/70 hover:bg-white/10;
+  }
+
+  .btn-primary {
+    @apply border-peps bg-peps text-black hover:bg-peps/90;
+  }
+
+  .btn-ghost {
+    @apply border-white/10 bg-white/5 text-white;
+  }
+
+  .btn-danger {
+    @apply border-red-500/40 bg-red-500/15 text-red-100;
+  }
+
+  .chip {
+    @apply inline-flex min-h-9 items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-sm text-zinc-200;
+  }
+
+  .skeleton {
+    @apply animate-pulse rounded-lg bg-white/10;
+  }
+}
+
+.storyboard-viewer-image {
+  touch-action: pan-y;
+}
