@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:pages-fallback": "vite build --outDir docs",
     "lint": "eslint .",
     "preview": "vite preview",
     "deploy": "npm run build"

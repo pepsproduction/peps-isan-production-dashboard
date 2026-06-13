@@ -98,6 +98,17 @@ Workflow อยู่ที่ `.github/workflows/deploy.yml`
 
 โปรเจกต์ตั้ง `vite.config.js` เป็น `base: './'` เพื่อให้ใช้กับ GitHub Pages ได้ง่าย
 
+ถ้า GitHub Actions ถูกปิดหรือถูกล็อกชั่วคราว ให้ใช้ fallback แบบ branch source ได้:
+
+```bash
+npm run build:pages-fallback
+git add docs
+git commit -m "Update Pages fallback build"
+git push
+```
+
+จากนั้นตั้ง GitHub Pages เป็น `Deploy from a branch` และเลือกโฟลเดอร์ `/docs`
+
 ## วิธีเปลี่ยน passcode
 
 แก้ใน `apps-script/Code.gs` ก่อน deploy จริง:
