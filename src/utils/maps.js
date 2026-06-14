@@ -66,8 +66,8 @@ function parsePlaceQueryFromUrl(value) {
 }
 
 function previewStops(stops) {
-  if (stops.length <= 5) return stops
-  return [stops[0], ...stops.slice(1, 3), stops[stops.length - 1]]
+  if (stops.length <= 3) return stops
+  return [stops[0], stops[stops.length - 1]]
 }
 
 export function parseRouteStops(queryOrUrl) {
