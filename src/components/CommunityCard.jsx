@@ -4,6 +4,7 @@ import { extractPhone, phoneHref } from '../utils/phone'
 import { buildCommunityCopy } from '../utils/copy'
 import LinkButton from './LinkButton'
 import StatusBadge from './StatusBadge'
+import ExpenseSummary from './ExpenseSummary'
 
 function info(label, value) {
   if (!value) return null
@@ -42,6 +43,7 @@ export default function CommunityCard({ community, onCopy, onEdit, onStoryboard 
         {info('ผู้ประสานงาน', [community.contactName, extractPhone(community.contactPhone)].filter(Boolean).join(' / ') || 'ยังไม่มีข้อมูลติดต่อ')}
         {info('วันที่ / เวลา', `${community.shootDate || '-'} ${community.startTime || ''}-${community.endTime || ''}`)}
         {info('ที่พัก', community.lodging)}
+        <ExpenseSummary record={community} />
       </div>
 
       <div className="mt-5 flex flex-wrap gap-2">

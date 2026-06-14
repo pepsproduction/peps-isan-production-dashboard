@@ -48,6 +48,10 @@ export const demoCommunities = communitySeed.map((row, index) => {
     checklistStatus,
     shootingStatus: index < 2 ? 'ถ่ายเสร็จแล้ว' : index === 2 ? 'กำลังถ่าย' : 'ยังไม่ได้เช็ก',
     note: index === 5 ? 'เส้นทางมีช่วงริมแม่น้ำ ควรเผื่อเวลาเดินทาง' : '',
+    expenseLocation: index % 3 === 0 ? 'สำเร็จ' : '',
+    expenseInfluencer: index % 4 === 0 ? 'สำเร็จ' : '',
+    expenseContent1000: index % 2 === 0 ? 'สำเร็จ' : '',
+    expenseCustomItems: index === 0 ? '[x] ค่าเรือ\n[ ] ค่าอาหารทีม' : '',
   }
 })
 
@@ -201,6 +205,10 @@ export const demoData = {
     contactPhone: community.contactPhone,
     extraCheck: community.checkNotes,
     shootingStatus: community.shootingStatus,
+    expenseLocation: community.expenseLocation,
+    expenseInfluencer: community.expenseInfluencer,
+    expenseContent1000: community.expenseContent1000,
+    expenseCustomItems: community.expenseCustomItems,
   })),
   lodging: demoLodging,
   maps: demoMaps,

@@ -51,18 +51,39 @@ export default function Communities({ data, config, copyText, updateRecord, noti
   const saveEdit = async (form) => {
     setSaving(true)
     try {
+      const checklistFields = {
+        checklistStatus: form.checklistStatus,
+        shootingStatus: form.shootingStatus,
+        contactName: form.contactName,
+        contactPhone: form.contactPhone,
+        note: form.note,
+        expenseLocation: form.expenseLocation,
+        expenseInfluencer: form.expenseInfluencer,
+        expenseContent1000: form.expenseContent1000,
+        expenseCustomItems: form.expenseCustomItems,
+      }
       await updateRecord('batchUpdateFields', {
-        sheetName: SHEETS.communities,
-        rowKey: editing.id,
-        communityId: editing.id,
-        fields: {
-          checklistStatus: form.checklistStatus,
-          shootingStatus: form.shootingStatus,
-          contactName: form.contactName,
-          contactPhone: form.contactPhone,
-          note: form.note,
-          storyboardLink: form.storyboardLink,
-        },
+        updates: [
+          {
+            sheetName: SHEETS.checklist,
+            rowKey: editing.checklistRowNumber || editing.checklistId || editing.id,
+            communityId: editing.id,
+            fields: checklistFields,
+          },
+          {
+            sheetName: SHEETS.communities,
+            rowKey: editing.id,
+            communityId: editing.id,
+            fields: {
+              checklistStatus: form.checklistStatus,
+              shootingStatus: form.shootingStatus,
+              contactName: form.contactName,
+              contactPhone: form.contactPhone,
+              note: form.note,
+              storyboardLink: form.storyboardLink,
+            },
+          },
+        ],
       })
       setEditing(null)
     } finally {

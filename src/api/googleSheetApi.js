@@ -136,11 +136,13 @@ function enrichSheetDataWithApi(sheetData, apiData) {
       url: preferUsableUrl(item.url, match?.url),
     }
   })
+  const checklist = apiData.checklist?.length ? apiData.checklist : sheetData.checklist
 
   return {
     ...apiData,
     ...sheetData,
     communities,
+    checklist,
     timeline,
     lodging,
     maps,

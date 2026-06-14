@@ -1,6 +1,7 @@
 import { buildStoryboardIndex, storyboardStatusFromCount } from './storyboard'
 import { toDateInputValue } from './date'
 import { extractPhone, stripPhone } from './phone'
+import { buildExpenseItems, getExpenseProgress } from './expenses'
 
 export function compactText(value) {
   return String(value ?? '')
@@ -84,7 +85,7 @@ export function normalizeCommunity(row = {}) {
   const contactPhone = getAny(row, ['contactPhone', 'เบอร์โทร', 'โทร', 'phone'], extractedPhone)
   const contactName = stripPhone(contactRaw)
 
-  return {
+  const communityRecord = {
     id,
     rowNumber: getAny(row, ['rowNumber', '_rowNumber']),
     sequence,
@@ -114,6 +115,16 @@ export function normalizeCommunity(row = {}) {
     checklistStatus: getAny(row, ['checklistStatus', 'status'], 'ยังไม่ได้เช็ก'),
     shootingStatus: getAny(row, ['shootingStatus'], 'ยังไม่ได้เช็ก'),
     note: getAny(row, ['note', 'หมายเหตุ']),
+    expenseLocation: getAny(row, ['expenseLocation', 'ค่าสถานที่']),
+    expenseInfluencer: getAny(row, ['expenseInfluencer', 'ค่า Influencer']),
+    expenseContent1000: getAny(row, ['expenseContent1000', 'ค่า content 1000']),
+    expenseCustomItems: getAny(row, ['expenseCustomItems', 'ค่าใช้จ่ายเพิ่มเติม', 'ค่าใช้จ่ายอื่นๆ']),
+  }
+  const expenseItems = buildExpenseItems(communityRecord)
+  return {
+    ...communityRecord,
+    expenseItems,
+    expenseProgress: getExpenseProgress(expenseItems),
   }
 }
 
@@ -163,7 +174,8 @@ export function normalizeChecklistItem(row = {}, index = 0, communities = []) {
   const contactRaw = getAny(row, ['contactName', 'ผู้ประสานงาน', 'ผู้ประสานงานในพื้นที่'])
   const extractedPhone = extractPhone(contactRaw)
   const dateRaw = getAny(row, ['date', 'วันที่'], matched?.shootDate || '')
-  return {
+  const checklistStatus = getAny(row, ['checklistStatus', 'สถานะ Checklist', 'status', 'สถานะ'], 'ยังไม่ได้เช็ก')
+  const item = {
     ...row,
     id: getAny(row, ['id', 'ID'], `check-${index + 1}`),
     rowNumber: getAny(row, ['rowNumber', '_rowNumber']),
@@ -182,10 +194,21 @@ export function normalizeChecklistItem(row = {}, index = 0, communities = []) {
     item: getAny(row, ['item', 'สิ่งที่ต้องเช็ก']),
     contactName: stripPhone(contactRaw) || contactRaw,
     contactPhone: getAny(row, ['contactPhone', 'เบอร์โทร', 'โทร', 'phone'], extractedPhone),
-    status: getAny(row, ['status', 'สถานะ'], 'ยังไม่ได้เช็ก'),
+    status: checklistStatus,
+    checklistStatus,
     note: getAny(row, ['note', 'หมายเหตุ']),
     extraCheck: getAny(row, ['extraCheck', 'สิ่งที่ต้องเช็ก', 'ข้อควรเช็คเพิ่มเติม', 'ข้อควรเช็ค']),
     shootingStatus: getAny(row, ['shootingStatus', 'สถานะถ่ายทำ'], 'ยังไม่ได้เช็ก'),
+    expenseLocation: getAny(row, ['expenseLocation', 'ค่าสถานที่']),
+    expenseInfluencer: getAny(row, ['expenseInfluencer', 'ค่า Influencer']),
+    expenseContent1000: getAny(row, ['expenseContent1000', 'ค่า content 1000']),
+    expenseCustomItems: getAny(row, ['expenseCustomItems', 'ค่าใช้จ่ายเพิ่มเติม', 'ค่าใช้จ่ายอื่นๆ']),
+  }
+  const expenseItems = buildExpenseItems(item)
+  return {
+    ...item,
+    expenseItems,
+    expenseProgress: getExpenseProgress(expenseItems),
   }
 }
 
@@ -261,6 +284,35 @@ function inferTimelineCommunityIds(item, communities) {
     .map((community) => community.id)
 }
 
+function checklistMatchesCommunity(checklistItem, community) {
+  if (!checklistItem || !community) return false
+  if (checklistItem.communityId && checklistItem.communityId === community.id) return true
+  return normalizeThai(checklistItem.province) === normalizeThai(community.province) && normalizeThai(checklistItem.community) === normalizeThai(community.community)
+}
+
+function mergeChecklistIntoCommunity(community, checklist = []) {
+  const checklistItem = checklist.find((item) => checklistMatchesCommunity(item, community))
+  if (!checklistItem) return community
+  const merged = {
+    ...community,
+    checklistId: checklistItem.id,
+    checklistRowNumber: checklistItem.rowNumber,
+    checklistStatus: checklistItem.checklistStatus || checklistItem.status || community.checklistStatus,
+    shootingStatus: checklistItem.shootingStatus || community.shootingStatus,
+    contactName: checklistItem.contactName || community.contactName,
+    contactPhone: checklistItem.contactPhone || community.contactPhone,
+    note: checklistItem.note || community.note,
+    checkNotes: checklistItem.extraCheck || community.checkNotes,
+    expenseLocation: checklistItem.expenseLocation,
+    expenseInfluencer: checklistItem.expenseInfluencer,
+    expenseContent1000: checklistItem.expenseContent1000,
+    expenseCustomItems: checklistItem.expenseCustomItems,
+    expenseItems: checklistItem.expenseItems,
+    expenseProgress: checklistItem.expenseProgress,
+  }
+  return merged
+}
+
 export function normalizeAppData(raw = {}) {
   const communities = (raw.communities || []).map(normalizeCommunity)
   const timeline = (raw.timeline || [])
@@ -270,7 +322,8 @@ export function normalizeAppData(raw = {}) {
   const lodging = (raw.lodging || []).map((item, index) => normalizeLodgingItem(item, index))
   const maps = (raw.maps || []).map((item, index) => normalizeMapItem(item, index))
   const storyboardIndex = buildStoryboardIndex(raw.storyboardFolders || [], communities)
-  const communitiesWithStoryboard = communities.map((community) => {
+  const communitiesWithChecklist = communities.map((community) => mergeChecklistIntoCommunity(community, checklist))
+  const communitiesWithStoryboard = communitiesWithChecklist.map((community) => {
     const folder = storyboardIndex.byCommunityId.get(community.id)
     const imageCount = Number(folder?.imageCount || folder?.images?.length || 0)
     return {

@@ -25,6 +25,10 @@ const EDITOR_FIELDS = [
   'note',
   'checkNotes',
   'storyboardLink',
+  'expenseLocation',
+  'expenseInfluencer',
+  'expenseContent1000',
+  'expenseCustomItems',
 ]
 
 function doOptions() {
@@ -59,8 +63,8 @@ function doPost(e) {
     if (role === 'viewer') return json_({ ok: false, error: 'Viewer passcode is read-only' })
 
     if (action === 'updateCommunityField') return json_(updateOneField_(body, role, SHEETS.communities))
-    if (action === 'updateChecklistStatus') return json_(updateOneField_({ ...body, fieldName: 'status', value: body.status || body.value }, role, SHEETS.checklist))
-    if (action === 'updateShootingStatus') return json_(updateOneField_({ ...body, fieldName: 'shootingStatus', value: body.status || body.value }, role, SHEETS.communities))
+    if (action === 'updateChecklistStatus') return json_(updateOneField_({ ...body, fieldName: 'checklistStatus', value: body.status || body.value }, role, SHEETS.checklist))
+    if (action === 'updateShootingStatus') return json_(updateOneField_({ ...body, fieldName: 'shootingStatus', value: body.status || body.value }, role, SHEETS.checklist))
     if (action === 'updateStoryboardLink') return json_(updateOneField_({ ...body, fieldName: 'storyboardLink' }, role, SHEETS.communities))
     if (action === 'updateContact') return json_(batchUpdateFields_({ ...body, sheetName: body.sheetName || SHEETS.communities, fields: { contactName: body.contactName, contactPhone: body.contactPhone } }, role))
     if (action === 'updateNote') return json_(updateOneField_({ ...body, fieldName: 'note' }, role, body.sheetName || SHEETS.communities))
@@ -139,6 +143,10 @@ function getCommunities_() {
       checklistStatus: getAny_(row, ['สถานะ Checklist', 'checklistStatus', 'status']) || 'ยังไม่ได้เช็ก',
       shootingStatus: getAny_(row, ['สถานะถ่ายทำ', 'shootingStatus']) || 'ยังไม่ได้เช็ก',
       note: getAny_(row, ['หมายเหตุ', 'note']),
+      expenseLocation: getAny_(row, ['ค่าสถานที่', 'expenseLocation']),
+      expenseInfluencer: getAny_(row, ['ค่า Influencer', 'expenseInfluencer']),
+      expenseContent1000: getAny_(row, ['ค่า content 1000', 'expenseContent1000']),
+      expenseCustomItems: getAny_(row, ['ค่าใช้จ่ายเพิ่มเติม', 'ค่าใช้จ่ายอื่นๆ', 'expenseCustomItems']),
     }
     item.storyboardStatus = item.storyboardLink ? 'partial' : 'missing'
     return item
@@ -187,6 +195,10 @@ function getChecklist_(communities) {
       contactPhone: community.contactPhone,
       extraCheck: community.checkNotes,
       shootingStatus: community.shootingStatus,
+      expenseLocation: community.expenseLocation,
+      expenseInfluencer: community.expenseInfluencer,
+      expenseContent1000: community.expenseContent1000,
+      expenseCustomItems: community.expenseCustomItems,
     }))
   }
 
@@ -202,12 +214,17 @@ function getChecklist_(communities) {
       communityId: matched ? matched.id : buildCommunityId_(getAny_(row, ['ลำดับถ่ายใหม่', 'sequence']), province, community),
       province,
       community,
-      status: getAny_(row, ['สถานะ', 'status', 'checklistStatus']) || 'ยังไม่ได้เช็ก',
+      status: getAny_(row, ['สถานะ Checklist', 'สถานะ', 'status', 'checklistStatus']) || 'ยังไม่ได้เช็ก',
+      checklistStatus: getAny_(row, ['สถานะ Checklist', 'สถานะ', 'status', 'checklistStatus']) || 'ยังไม่ได้เช็ก',
       note: getAny_(row, ['หมายเหตุ', 'note']),
       contactName: cleanContactName_(contactRaw),
       contactPhone,
       extraCheck: getAny_(row, ['ข้อควรเช็คเพิ่มเติม', 'ข้อควรเช็ค', 'extraCheck']),
       shootingStatus: getAny_(row, ['สถานะถ่ายทำ', 'shootingStatus']) || 'ยังไม่ได้เช็ก',
+      expenseLocation: getAny_(row, ['ค่าสถานที่', 'expenseLocation']),
+      expenseInfluencer: getAny_(row, ['ค่า Influencer', 'expenseInfluencer']),
+      expenseContent1000: getAny_(row, ['ค่า content 1000', 'expenseContent1000']),
+      expenseCustomItems: getAny_(row, ['ค่าใช้จ่ายเพิ่มเติม', 'ค่าใช้จ่ายอื่นๆ', 'expenseCustomItems']),
     }
   })
 }
@@ -407,6 +424,13 @@ function updateOneField_(body, role, defaultSheetName) {
 }
 
 function batchUpdateFields_(body, role) {
+  if (Array.isArray(body.updates)) {
+    const results = body.updates
+      .filter((update) => update && update.fields)
+      .map((update) => batchUpdateFields_({ ...body, ...update, updates: null }, role))
+    return { ok: true, updates: results }
+  }
+
   const sheetName = body.sheetName || SHEETS.communities
   const fields = body.fields || {}
   const row = findRowForUpdate_(sheetName, body.rowKey || body.communityId)
@@ -439,13 +463,17 @@ function findRowForUpdate_(sheetName, rowKey) {
 function fieldHeader_(sheetName, fieldName) {
   const common = {
     status: 'สถานะ',
-    checklistStatus: sheetName === SHEETS.checklist ? 'สถานะ' : 'สถานะ Checklist',
+    checklistStatus: 'สถานะ Checklist',
     shootingStatus: 'สถานะถ่ายทำ',
     contactName: sheetName === SHEETS.checklist ? 'ผู้ประสานงาน' : 'ผู้ประสานงานในพื้นที่',
     contactPhone: 'เบอร์โทร',
     note: 'หมายเหตุ',
     checkNotes: 'ข้อควรเช็ค',
     storyboardLink: 'Link Storyboard',
+    expenseLocation: 'ค่าสถานที่',
+    expenseInfluencer: 'ค่า Influencer',
+    expenseContent1000: 'ค่า content 1000',
+    expenseCustomItems: 'ค่าใช้จ่ายเพิ่มเติม',
   }
   return common[fieldName] || fieldName
 }

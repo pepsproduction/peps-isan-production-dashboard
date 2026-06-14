@@ -4,6 +4,7 @@ import SearchInput from '../components/SearchInput'
 import StatusBadge from '../components/StatusBadge'
 import FilterChips from '../components/FilterChips'
 import LinkButton from '../components/LinkButton'
+import ExpenseSummary from '../components/ExpenseSummary'
 import { SHEETS } from '../config'
 import { normalizeThai } from '../utils/normalize'
 import { phoneHref } from '../utils/phone'
@@ -58,7 +59,7 @@ export default function Checklist({ data, updateRecord }) {
   }, [dateOptions, selectedDate, selectedWeek, workWeeks])
 
   const filtered = checklist.filter((item) => {
-    const key = normalizeThai([item.province, item.community, item.content, item.introduction, item.note, item.extraCheck, item.contactName].join(' '))
+    const key = normalizeThai([item.province, item.community, item.content, item.introduction, item.note, item.extraCheck, item.contactName, item.expenseCustomItems].join(' '))
     const dateKey = item.date || item.shootDate || ''
     const activeWeek = workWeeks.find((week) => week.id === selectedWeek)
     const dateMatch =
@@ -72,17 +73,38 @@ export default function Checklist({ data, updateRecord }) {
   const saveEdit = async (form) => {
     setSaving(true)
     try {
+      const checklistFields = {
+        checklistStatus: form.checklistStatus,
+        shootingStatus: form.shootingStatus,
+        contactName: form.contactName,
+        contactPhone: form.contactPhone,
+        note: form.note,
+        expenseLocation: form.expenseLocation,
+        expenseInfluencer: form.expenseInfluencer,
+        expenseContent1000: form.expenseContent1000,
+        expenseCustomItems: form.expenseCustomItems,
+      }
       await updateRecord('batchUpdateFields', {
-        sheetName: SHEETS.checklist,
-        rowKey: editing.rowNumber || editing._rowNumber || editing.communityId || editing.id,
-        communityId: editing.communityId,
-        fields: {
-          status: form.checklistStatus,
-          shootingStatus: form.shootingStatus,
-          contactName: form.contactName,
-          contactPhone: form.contactPhone,
-          note: form.note,
-        },
+        updates: [
+          {
+            sheetName: SHEETS.checklist,
+            rowKey: editing.rowNumber || editing._rowNumber || editing.communityId || editing.id,
+            communityId: editing.communityId,
+            fields: checklistFields,
+          },
+          editing.communityId ? {
+            sheetName: SHEETS.communities,
+            rowKey: editing.communityId,
+            communityId: editing.communityId,
+            fields: {
+              checklistStatus: form.checklistStatus,
+              shootingStatus: form.shootingStatus,
+              contactName: form.contactName,
+              contactPhone: form.contactPhone,
+              note: form.note,
+            },
+          } : null,
+        ].filter(Boolean),
       })
       setEditing(null)
     } finally {
@@ -172,6 +194,7 @@ export default function Checklist({ data, updateRecord }) {
                       <div><p className="text-zinc-500">ที่พัก</p><p className="text-zinc-100">{item.lodging || '-'}</p></div>
                       <div><p className="text-zinc-500">หมายเหตุ</p><p className="text-zinc-100">{item.note || '-'}</p></div>
                       <div className="sm:col-span-2"><p className="text-zinc-500">ข้อควรเช็คเพิ่มเติม</p><p className="text-zinc-100">{item.extraCheck || '-'}</p></div>
+                      <ExpenseSummary record={item} />
                     </div>
                     <div className="mt-5 flex flex-wrap gap-2">
                       <LinkButton label="แก้ไข" icon={Edit3} onClick={() => setEditing(item)} />
