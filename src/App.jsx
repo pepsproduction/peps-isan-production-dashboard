@@ -13,6 +13,7 @@ import Settings from './pages/Settings'
 import { NAV_ITEMS } from './config'
 import { fetchAppData, sendUpdate } from './api/googleSheetApi'
 import { clearCache, loadCachedData, loadConfig, saveConfig } from './api/localCache'
+import { loadPublicConfig, mergePublicConfig } from './api/publicConfig'
 
 function getInitialPage() {
   const page = window.location.hash.replace('#/', '') || 'dashboard'
@@ -22,10 +23,11 @@ function getInitialPage() {
 export default function App() {
   const [page, setPage] = useState(getInitialPage)
   const [config, setConfig] = useState(loadConfig)
+  const [configReady, setConfigReady] = useState(false)
   const [data, setData] = useState(() => loadCachedData()?.data || null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [mode, setMode] = useState(config.demoMode || !config.apiUrl ? 'demo' : 'live')
+  const [mode, setMode] = useState('loading')
   const [lastUpdated, setLastUpdated] = useState(loadCachedData()?.savedAt || '')
   const [toast, setToast] = useState(null)
 
@@ -33,8 +35,21 @@ export default function App() {
     setToast({ id: Date.now(), message, type })
   }, [])
 
+  useEffect(() => {
+    let active = true
+    loadPublicConfig().then((publicConfig) => {
+      if (!active) return
+      setConfig((currentConfig) => mergePublicConfig(currentConfig, publicConfig))
+      setConfigReady(true)
+    })
+    return () => {
+      active = false
+    }
+  }, [])
+
   const refreshData = useCallback(
     async (options = {}) => {
+      if (!configReady && !options.force) return
       setLoading(true)
       setError('')
       try {
@@ -60,12 +75,12 @@ export default function App() {
         setLoading(false)
       }
     },
-    [config, notify],
+    [config, configReady, notify],
   )
 
   useEffect(() => {
-    refreshData()
-  }, [refreshData])
+    if (configReady) refreshData()
+  }, [configReady, refreshData])
 
   useEffect(() => {
     if (!config.autoRefreshMinutes) return undefined

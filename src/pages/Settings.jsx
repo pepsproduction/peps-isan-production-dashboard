@@ -1,10 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { pingApi } from '../api/googleSheetApi'
 import { DEFAULT_CONFIG } from '../config'
 
 export default function Settings({ config, onSave, onClearCache, onRefresh, notify }) {
   const [form, setForm] = useState(config || DEFAULT_CONFIG)
   const [testing, setTesting] = useState(false)
+
+  useEffect(() => {
+    setForm(config || DEFAULT_CONFIG)
+  }, [config])
 
   const setValue = (key, value) => setForm((prev) => ({ ...prev, [key]: value }))
 

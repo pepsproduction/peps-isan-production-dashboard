@@ -1,6 +1,7 @@
 export const APP_NAME = 'Peps Isan Production Dashboard'
 export const SPREADSHEET_ID = '1NMs4jUsSxplcRPp5PZksmovwwMRpKoNFTodjNR495Uo'
 export const STORYBOARD_ROOT_FOLDER_ID = '1Tv_9Xlrw0XlEhS2sB9DPz8R99LvvrWnY'
+export const STORYBOARD_ROOT_FOLDER_URL = `https://drive.google.com/drive/folders/${STORYBOARD_ROOT_FOLDER_ID}`
 
 export const SHEETS = {
   dashboard: 'Dashboard_สรุปงาน',

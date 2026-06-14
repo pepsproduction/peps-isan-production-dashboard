@@ -63,6 +63,22 @@ export function sortStoryboardFiles(files = []) {
   )
 }
 
+export function extractDriveFolderId(url = '') {
+  const value = String(url || '')
+  const folderMatch = value.match(/\/folders\/([a-zA-Z0-9_-]+)/)
+  if (folderMatch?.[1]) return folderMatch[1]
+  try {
+    return new URL(value).searchParams.get('id') || ''
+  } catch {
+    return ''
+  }
+}
+
+export function makeDriveFolderEmbedUrl(url = '') {
+  const folderId = extractDriveFolderId(url)
+  return folderId ? `https://drive.google.com/embeddedfolderview?id=${encodeURIComponent(folderId)}#grid` : ''
+}
+
 export function makeDemoStoryboardDataUrl(title, index, total) {
   const colors = ['#ff7a00', '#f5b642', '#18a058', '#38bdf8', '#f97316', '#ef4444']
   const accent = colors[(index - 1) % colors.length]

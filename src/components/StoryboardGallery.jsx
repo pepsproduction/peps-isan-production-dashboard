@@ -14,6 +14,9 @@ export default function StoryboardGallery({ communities = [], config, notify }) 
     setLoadingId(community.id)
     try {
       const result = await fetchStoryboardImages(config, community)
+      if (result.fallback === 'drive-folder' && !(result.images || []).length) {
+        notify?.('ยังไม่ได้เชื่อม Apps Script สำหรับรูป Storyboard จึงแสดงโฟลเดอร์ Drive ในเว็บเป็นตัวสำรอง', 'warning')
+      }
       setViewer({
         open: true,
         community,

@@ -1,4 +1,5 @@
 import { demoData, getDemoStoryboardImages } from '../demoData'
+import { STORYBOARD_ROOT_FOLDER_URL } from '../config'
 import { normalizeAppData, normalizeThai } from '../utils/normalize'
 import { fetchPublicSheetData } from './googleSheetCsv'
 import { saveCachedData } from './localCache'
@@ -59,6 +60,26 @@ function preferUsableUrl(primary, fallback) {
   if (isUrl(primary)) return primary
   if (isUrl(fallback)) return fallback
   return primary || fallback || ''
+}
+
+function storyboardStatusFromCount(count = 0) {
+  if (count >= 6) return 'complete'
+  if (count > 0) return 'partial'
+  return 'missing'
+}
+
+function matchStoryboardFolder(folders = [], community = {}) {
+  const sequence = String(community.sequence || '').padStart(2, '0')
+  const province = normalizeThai(community.province)
+  const communityName = normalizeThai(community.community)
+  return (
+    folders.find((folder) => sequence && String(folder.name || '').trim().startsWith(sequence)) ||
+    folders.find((folder) => folder.matchedCommunityId === community.id || folder.communityId === community.id) ||
+    folders.find((folder) => {
+      const name = normalizeThai(folder.name)
+      return province && communityName && name.includes(province) && (name.includes(communityName) || communityName.includes(name))
+    })
+  )
 }
 
 function enrichSheetDataWithApi(sheetData, apiData) {
@@ -158,10 +179,27 @@ export async function fetchAppData(config) {
 }
 
 export async function fetchStoryboardImages(config, community) {
-  if (config.demoMode || !config.apiUrl) {
+  if (config.demoMode) {
     return getDemoStoryboardImages(community.id)
   }
-  return getJson(config.apiUrl, {
+  if (!config.apiUrl) {
+    const folder = community.storyboardFolder || (community.storyboardLink ? { url: community.storyboardLink } : {
+      name: 'Storyboard Root Folder',
+      url: STORYBOARD_ROOT_FOLDER_URL,
+      rootFallback: true,
+    })
+    return {
+      ok: true,
+      communityId: community.id,
+      folder,
+      images: community.storyboardFolder?.images || [],
+      imageCount: community.storyboardFolder?.imageCount || 0,
+      status: community.storyboardStatus || storyboardStatusFromCount(community.storyboardFolder?.imageCount || 0),
+      fallback: 'drive-folder',
+      warning: 'ต้องตั้งค่า Apps Script API URL เพื่อโหลดรูป Storyboard แบบ proxy รายชุมชน',
+    }
+  }
+  const params = {
     action: 'getStoryboardImages',
     communityId: community.id,
     rowNumber: community.rowNumber,
@@ -171,7 +209,31 @@ export async function fetchStoryboardImages(config, community) {
     communityName: community.community,
     folderId: community.storyboardFolder?.id || community.storyboardFolder?.folderId,
     storyboardLink: community.storyboardLink,
-  })
+  }
+  try {
+    return await getJson(config.apiUrl, params)
+  } catch (err) {
+    if (!String(err.message || '').includes('Community not found')) throw err
+    const foldersResult = await getJson(config.apiUrl, { action: 'getStoryboardFolders' }).catch(() => null)
+    const folders = foldersResult?.storyboardFolders || foldersResult?.folders || []
+    const folder = matchStoryboardFolder(folders, community)
+    if (!folder?.id) {
+      return { ok: true, status: 'missing', images: [], folder: null, imageCount: 0, warning: err.message }
+    }
+    return getJson(config.apiUrl, {
+      ...params,
+      communityId: '',
+      folderId: folder.id,
+      storyboardLink: folder.url,
+    }).catch(() => ({
+      ok: true,
+      status: storyboardStatusFromCount(Number(folder.imageCount || 0)),
+      images: [],
+      folder,
+      imageCount: Number(folder.imageCount || 0),
+      warning: err.message,
+    }))
+  }
 }
 
 export async function fetchStoryboardImage(config, fileId) {

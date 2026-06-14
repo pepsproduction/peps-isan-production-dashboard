@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, ExternalLink, Loader2, Minus, Plus, X } from 'lucide-react'
 import { fetchStoryboardImage } from '../api/googleSheetApi'
+import { makeDriveFolderEmbedUrl } from '../utils/storyboard'
 import LinkButton from './LinkButton'
 
 export default function StoryboardViewer({ open, community, images = [], initialIndex = 0, onClose, config, driveUrl }) {
@@ -15,6 +16,7 @@ export default function StoryboardViewer({ open, community, images = [], initial
   const imageCount = images.length
   const currentSrc = current?.dataUrl || loaded[current?.fileId]
   const unsupported = current && !String(current.mimeType || '').startsWith('image/')
+  const driveEmbedUrl = makeDriveFolderEmbedUrl(driveUrl)
 
   const loadImage = useMemo(
     () => async (image) => {
@@ -131,6 +133,19 @@ export default function StoryboardViewer({ open, community, images = [], initial
             className="max-h-full max-w-full rounded-lg object-contain shadow-2xl transition-transform"
             style={{ transform: `scale(${zoom})` }}
           />
+        ) : driveEmbedUrl ? (
+          <div className="flex h-full w-full max-w-6xl flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-zinc-300">
+              <span>ยังไม่ได้รายการไฟล์จาก Apps Script จึงแสดงโฟลเดอร์ Drive ในหน้าเว็บเป็นตัวสำรอง</span>
+              {driveUrl ? <LinkButton href={driveUrl} label="เปิด Drive" icon={ExternalLink} /> : null}
+            </div>
+            <iframe
+              title={`Storyboard Drive ${community?.community || ''}`}
+              src={driveEmbedUrl}
+              className="min-h-[62vh] w-full flex-1 rounded-lg border border-white/10 bg-white"
+              loading="lazy"
+            />
+          </div>
         ) : (
           <div className="text-zinc-400">ไม่มีรูป Storyboard</div>
         )}

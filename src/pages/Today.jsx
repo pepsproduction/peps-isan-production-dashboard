@@ -8,6 +8,32 @@ import { buildTimelineCopy } from '../utils/copy'
 import { formatThaiDate, todayInput, uniqueDates } from '../utils/date'
 import { makeMapsUrl } from '../utils/maps'
 
+function CommunityBrief({ community }) {
+  if (!community) return null
+  const fields = [
+    ['CONTENT', community.content],
+    ['INTRODUCTION', community.introduction],
+    ['ผลิตภัณฑ์เด่น', community.products],
+    ['โปรแกรม/จุดถ่าย', community.program],
+  ]
+  return (
+    <article className="soft-card p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-lg bg-peps px-2.5 py-1 text-sm font-bold text-black">{community.sequence || '-'}</span>
+        <h3 className="font-bold text-white">{community.province} - {community.community}</h3>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        {fields.map(([label, value]) => (
+          <div key={label}>
+            <p className="text-xs text-zinc-500">{label}</p>
+            <p className="mt-1 text-sm text-zinc-100">{value || '-'}</p>
+          </div>
+        ))}
+      </div>
+    </article>
+  )
+}
+
 export default function Today({ data, config, copyText, notify }) {
   const timeline = useMemo(() => data?.timeline || [], [data])
   const communities = useMemo(() => data?.communities || [], [data])
@@ -82,6 +108,15 @@ export default function Today({ data, config, copyText, notify }) {
               <p className="mt-1 text-lg font-semibold text-white">{item.nextMorning || '-'}</p>
             </div>
           </div>
+
+          {related.length ? (
+            <section className="mt-5 space-y-3">
+              <h3 className="section-title">รายละเอียดชุมชนในคิววันนี้</h3>
+              <div className="grid gap-3">
+                {related.map((community) => <CommunityBrief key={community.id} community={community} />)}
+              </div>
+            </section>
+          ) : null}
 
           <div className="mt-5 flex flex-wrap gap-2">
             <LinkButton href={makeMapsUrl(item.mapQuery || item.morningTitle)} label="เปิด Maps" icon={MapPin} />

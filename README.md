@@ -82,6 +82,27 @@ const CONFIG = {
 6. กด `ทดสอบ API`
 7. กด `Refresh data`
 
+## วิธีตั้งค่าให้คนอื่นเปิดเว็บแล้วเห็นข้อมูลทันที
+
+เว็บอ่านค่าเริ่มต้นจากไฟล์ `public/app-config.json` ก่อน แล้วค่อยให้ค่าใน `Settings` ของแต่ละเครื่อง override ภายหลัง
+
+```json
+{
+  "apiUrl": "https://script.google.com/macros/s/DEPLOYMENT_ID/exec",
+  "mapsApiKey": "",
+  "demoMode": false,
+  "autoRefreshMinutes": 0
+}
+```
+
+สิ่งที่ควรใส่:
+
+- `apiUrl`: ใส่ Web App URL จาก Apps Script หลัง deploy แล้ว เพื่อให้ทุกคนโหลดข้อมูลล่าสุดและ Storyboard proxy ได้โดยไม่ต้องกรอก Settings เอง
+- `mapsApiKey`: ใส่เฉพาะถ้ามี Google Maps Embed API Key
+- ห้ามใส่ passcode ในไฟล์นี้ เพราะไฟล์นี้ถูก publish ไปกับเว็บ
+
+ถ้า `apiUrl` ยังว่าง เว็บยังดึงข้อมูลจาก Google Sheet แบบ public CSV ได้ แต่การโหลดรูป Storyboard ทีละไฟล์จาก Drive และการบันทึกกลับ Sheet ต้องใช้ Apps Script Web App URL
+
 ## วิธี Deploy GitHub Pages
 
 Workflow อยู่ที่ `.github/workflows/deploy.yml`

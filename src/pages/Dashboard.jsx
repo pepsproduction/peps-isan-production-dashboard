@@ -34,10 +34,38 @@ function ChartCard({ title, children, height = 256 }) {
   )
 }
 
-function DashboardToday({ timeline, copyText, onNavigate }) {
+function DashboardCommunityBrief({ community }) {
+  const fields = [
+    ['CONTENT', community.content],
+    ['INTRODUCTION', community.introduction],
+    ['ผลิตภัณฑ์เด่น', community.products],
+    ['โปรแกรม/จุดถ่าย', community.program],
+  ]
+  return (
+    <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+      <p className="font-semibold text-white">{community.sequence || '-'} {community.province} - {community.community}</p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        {fields.map(([label, value]) => (
+          <div key={label}>
+            <p className="text-xs text-zinc-500">{label}</p>
+            <p className="text-sm text-zinc-100">{value || '-'}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DashboardToday({ timeline, communities, copyText, onNavigate }) {
   const dates = useMemo(() => uniqueDates(timeline), [timeline])
   const [selectedDate, setSelectedDate] = useState(dates.includes(todayInput()) ? todayInput() : dates[0] || todayInput())
   const item = timeline.find((entry) => entry.date === selectedDate)
+  const relatedCommunities = useMemo(
+    () => (item?.communityIds || [])
+      .map((id) => communities.find((community) => community.id === id))
+      .filter(Boolean),
+    [communities, item],
+  )
 
   useEffect(() => {
     if (dates.length && !dates.includes(selectedDate)) {
@@ -75,6 +103,16 @@ function DashboardToday({ timeline, copyText, onNavigate }) {
               <div><p className="text-zinc-500">ที่พักคืนนี้</p><p className="text-white">{item.lodging || '-'}</p></div>
               <div><p className="text-zinc-500">คิวเช้าถัดไป</p><p className="text-white">{item.nextMorning || '-'}</p></div>
             </div>
+            {relatedCommunities.length ? (
+              <div className="mt-4 space-y-3">
+                <p className="text-sm font-semibold text-peps">รายละเอียดชุมชนในคิววันนี้</p>
+                <div className="grid gap-3">
+                  {relatedCommunities.map((community) => (
+                    <DashboardCommunityBrief key={community.id} community={community} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
           <div className="flex flex-col gap-2">
             <LinkButton href={makeMapsUrl(item.mapQuery || item.morningTitle)} label="เปิด Maps" icon={MapPinned} />
@@ -121,7 +159,7 @@ export default function Dashboard({ data, loading, error, copyText, onNavigate }
         {error ? <StatusBadge status="warning">{error}</StatusBadge> : null}
       </div>
 
-      <DashboardToday timeline={timeline} copyText={copyText} onNavigate={onNavigate} />
+      <DashboardToday timeline={timeline} communities={communities} copyText={copyText} onNavigate={onNavigate} />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="จำนวนจังหวัดทั้งหมด" value={stats.provinces || 0} icon={MapPinned} tone="orange" />

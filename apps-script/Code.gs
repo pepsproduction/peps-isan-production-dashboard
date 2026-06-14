@@ -39,6 +39,7 @@ function doGet(e) {
     if (action === 'getAppData') return json_(getAppData_(), params.callback)
     if (action === 'getStoryboardFolders') return json_({ ok: true, storyboardFolders: getStoryboardFolders_() }, params.callback)
     if (action === 'getStoryboardImages') return json_(getStoryboardImages_(params), params.callback)
+    if (action === 'getStoryboardImagesByFolder') return json_(getStoryboardImages_(params), params.callback)
     if (action === 'getStoryboardImage') return json_(getStoryboardImage_(params.fileId), params.callback)
     if (action === 'getSheetData') return json_({ ok: true, sheetName: params.sheetName, rows: getSheetRows_(params.sheetName) }, params.callback)
     return json_({ ok: false, error: 'Unknown GET action: ' + action }, params.callback)

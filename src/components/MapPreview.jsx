@@ -3,11 +3,12 @@ import { makeEmbedUrl, makeMapsUrl } from '../utils/maps'
 import LinkButton from './LinkButton'
 
 export default function MapPreview({ title, query, url, apiKey, className = '' }) {
-  const target = url || query
-  const embedUrl = makeEmbedUrl(target, apiKey)
-  const mapsUrl = makeMapsUrl(target)
+  const previewTarget = query || url
+  const mapsTarget = url || query
+  const embedUrl = makeEmbedUrl(previewTarget, apiKey)
+  const mapsUrl = makeMapsUrl(mapsTarget)
 
-  if (!target) {
+  if (!previewTarget && !mapsTarget) {
     return (
       <div className={`soft-card flex min-h-56 items-center justify-center p-6 text-center text-zinc-400 ${className}`}>
         ยังไม่มีข้อมูลแผนที่
