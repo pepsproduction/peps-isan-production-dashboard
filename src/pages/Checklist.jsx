@@ -58,7 +58,7 @@ export default function Checklist({ data, updateRecord }) {
   }, [dateOptions, selectedDate, selectedWeek, workWeeks])
 
   const filtered = checklist.filter((item) => {
-    const key = normalizeThai([item.province, item.community, item.note, item.extraCheck, item.contactName].join(' '))
+    const key = normalizeThai([item.province, item.community, item.content, item.introduction, item.note, item.extraCheck, item.contactName].join(' '))
     const dateKey = item.date || item.shootDate || ''
     const activeWeek = workWeeks.find((week) => week.id === selectedWeek)
     const dateMatch =
@@ -167,6 +167,8 @@ export default function Checklist({ data, updateRecord }) {
                     <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                       <div><p className="text-zinc-500">วันที่ถ่าย</p><p className="text-zinc-100">{item.date ? formatThaiDate(item.date) : '-'}</p></div>
                       <div><p className="text-zinc-500">เวลา</p><p className="text-zinc-100">{time || '-'}</p></div>
+                      <div><p className="text-zinc-500">CONTENT</p><p className="text-zinc-100">{item.content || '-'}</p></div>
+                      <div><p className="text-zinc-500">INTRODUCTION</p><p className="text-zinc-100">{item.introduction || '-'}</p></div>
                       <div><p className="text-zinc-500">ที่พัก</p><p className="text-zinc-100">{item.lodging || '-'}</p></div>
                       <div><p className="text-zinc-500">หมายเหตุ</p><p className="text-zinc-100">{item.note || '-'}</p></div>
                       <div className="sm:col-span-2"><p className="text-zinc-500">ข้อควรเช็คเพิ่มเติม</p><p className="text-zinc-100">{item.extraCheck || '-'}</p></div>

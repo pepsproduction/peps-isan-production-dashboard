@@ -174,6 +174,8 @@ export function normalizeChecklistItem(row = {}, index = 0, communities = []) {
     startTime: matched?.startTime || getAny(row, ['startTime', 'เวลาเริ่ม']),
     endTime: matched?.endTime || getAny(row, ['endTime', 'เวลาจบ']),
     lodging: matched?.lodging || getAny(row, ['lodging', 'ที่พัก']),
+    content: matched?.content || getAny(row, ['content', 'CONTENT']),
+    introduction: matched?.introduction || getAny(row, ['introduction', 'INTRODUCTION']),
     province,
     community,
     time: getAny(row, ['time', 'เวลา']),
