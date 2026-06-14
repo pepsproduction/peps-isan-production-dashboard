@@ -1,10 +1,10 @@
 import { MapPin } from 'lucide-react'
-import { makeEmbedUrl, makeMapsUrl } from '../utils/maps'
+import { makeEmbedUrl, makeMapsUrl, resolveMapTarget } from '../utils/maps'
 import LinkButton from './LinkButton'
 
 export default function MapPreview({ title, query, url, apiKey, className = '' }) {
-  const previewTarget = query || url
-  const mapsTarget = url || query
+  const mapsTarget = resolveMapTarget(url, query)
+  const previewTarget = query || mapsTarget
   const embedUrl = makeEmbedUrl(previewTarget, apiKey)
   const mapsUrl = makeMapsUrl(mapsTarget)
 

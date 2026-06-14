@@ -162,12 +162,18 @@ export function normalizeChecklistItem(row = {}, index = 0, communities = []) {
   )
   const contactRaw = getAny(row, ['contactName', 'ผู้ประสานงาน', 'ผู้ประสานงานในพื้นที่'])
   const extractedPhone = extractPhone(contactRaw)
+  const dateRaw = getAny(row, ['date', 'วันที่'], matched?.shootDate || '')
   return {
     ...row,
     id: getAny(row, ['id', 'ID'], `check-${index + 1}`),
     rowNumber: getAny(row, ['rowNumber', '_rowNumber']),
-    communityId: getAny(row, ['communityId'], matched?.id || ''),
-    date: toDateInputValue(getAny(row, ['date', 'วันที่'])) || getAny(row, ['date', 'วันที่']),
+    communityId: matched?.id || getAny(row, ['communityId'], ''),
+    sequence: matched?.sequence || getAny(row, ['sequence', 'ลำดับ']),
+    date: toDateInputValue(dateRaw) || dateRaw,
+    shootDate: toDateInputValue(matched?.shootDate || dateRaw) || matched?.shootDate || dateRaw,
+    startTime: matched?.startTime || getAny(row, ['startTime', 'เวลาเริ่ม']),
+    endTime: matched?.endTime || getAny(row, ['endTime', 'เวลาจบ']),
+    lodging: matched?.lodging || getAny(row, ['lodging', 'ที่พัก']),
     province,
     community,
     time: getAny(row, ['time', 'เวลา']),

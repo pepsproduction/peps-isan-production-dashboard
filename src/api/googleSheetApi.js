@@ -1,5 +1,6 @@
 import { demoData, getDemoStoryboardImages } from '../demoData'
 import { STORYBOARD_ROOT_FOLDER_URL } from '../config'
+import { isUsableMapsUrl } from '../utils/maps'
 import { normalizeAppData, normalizeThai } from '../utils/normalize'
 import { fetchPublicSheetData } from './googleSheetCsv'
 import { saveCachedData } from './localCache'
@@ -57,8 +58,8 @@ function isUrl(value) {
 }
 
 function preferUsableUrl(primary, fallback) {
-  if (isUrl(primary)) return primary
-  if (isUrl(fallback)) return fallback
+  if (isUrl(primary) && (!String(primary).includes('google.') || isUsableMapsUrl(primary))) return primary
+  if (isUrl(fallback) && (!String(fallback).includes('google.') || isUsableMapsUrl(fallback))) return fallback
   return primary || fallback || ''
 }
 

@@ -9,6 +9,39 @@ function isHttpUrl(value) {
   return /^https?:\/\//i.test(String(value || '').trim())
 }
 
+function isGoogleMapsUrl(url) {
+  return /(^|\.)google\.[^/]+$/i.test(url.hostname) && url.pathname.includes('/maps')
+}
+
+export function isUsableMapsUrl(value) {
+  const text = String(value || '').trim()
+  if (!isHttpUrl(text)) return false
+  try {
+    const url = new URL(text)
+    if (!isGoogleMapsUrl(url)) return true
+    const params = url.searchParams
+    const hasDirIntent = url.pathname.includes('/dir') || text.includes('/maps/dir') || params.get('api') === '1'
+    const hasOriginKey = params.has('origin') || params.has('saddr')
+    const hasDestinationKey = params.has('destination') || params.has('daddr')
+    const origin = params.get('origin') || params.get('saddr') || ''
+    const destination = params.get('destination') || params.get('daddr') || ''
+    const pathStops = parseRouteStopsFromUrl(text)
+
+    if (hasDirIntent && (hasOriginKey || hasDestinationKey)) {
+      return Boolean((origin && destination) || pathStops.length >= 2)
+    }
+    if (params.has('query') || params.has('q')) return Boolean(params.get('query') || params.get('q'))
+    return pathStops.length >= 2 || url.pathname.includes('/place/') || url.pathname.includes('/search/')
+  } catch {
+    return false
+  }
+}
+
+export function resolveMapTarget(url, query) {
+  if (isUsableMapsUrl(url)) return String(url).trim()
+  return String(query || url || '').trim()
+}
+
 function decodeMapSegment(value) {
   return cleanStop(decodeURIComponent(String(value || '').replace(/\+/g, ' ')))
 }

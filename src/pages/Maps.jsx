@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import FilterChips from '../components/FilterChips'
 import LinkButton from '../components/LinkButton'
 import MapPreview from '../components/MapPreview'
-import { makeMapsUrl } from '../utils/maps'
+import { makeMapsUrl, resolveMapTarget } from '../utils/maps'
 import { MapPin } from 'lucide-react'
 
 export default function Maps({ data, config }) {
@@ -22,12 +22,18 @@ export default function Maps({ data, config }) {
       </section>
       <section className="grid gap-4 xl:grid-cols-2">
         {filtered.length ? (
-          filtered.map((item) => (
-            <div key={item.id} className="space-y-2">
-              <MapPreview title={item.title} query={item.query} url={item.url} apiKey={config.mapsApiKey} />
-              <LinkButton href={makeMapsUrl(item.url || item.query)} label="เปิดใน Google Maps" icon={MapPin} />
-            </div>
-          ))
+          filtered.map((item) => {
+            const mapTarget = resolveMapTarget(item.url, item.query)
+            return (
+              <div key={item.id} className="space-y-2">
+                <MapPreview title={item.title} query={item.query} url={item.url} apiKey={config.mapsApiKey} />
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-zinc-500">Map_Master แถว {item.rowNumber || '-'} · {item.type || 'แผนที่'} {item.batch ? `· ${item.batch}` : ''}</p>
+                  <LinkButton href={makeMapsUrl(mapTarget)} label="เปิดใน Google Maps" icon={MapPin} />
+                </div>
+              </div>
+            )
+          })
         ) : (
           <div className="card p-8 text-center text-zinc-400 xl:col-span-2">ยังไม่มีข้อมูล Map_Master</div>
         )}
