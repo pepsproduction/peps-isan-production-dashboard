@@ -268,12 +268,14 @@ function getStoryboardFolders_(communities) {
   while (folders.hasNext()) {
     const folder = folders.next()
     const match = matchFolderToCommunity_(folder.getName(), communities)
-    const imageCount = countImages_(folder)
+    const imageSummary = summarizeFolderImages_(folder)
+    const imageCount = imageSummary.imageCount
     result.push({
       id: folder.getId(),
       name: folder.getName(),
       url: folder.getUrl(),
       imageCount,
+      firstImage: imageSummary.firstImage,
       communityId: match ? match.id : '',
       matchedCommunityId: match ? match.id : '',
       status: imageCount >= 6 ? 'complete' : imageCount > 0 ? 'partial' : 'missing',
@@ -681,6 +683,28 @@ function countImages_(folder) {
     if (isSupportedImage_(files.next().getMimeType())) count += 1
   }
   return count
+}
+
+function summarizeFolderImages_(folder) {
+  const files = folder.getFiles()
+  const images = []
+  while (files.hasNext()) {
+    const file = files.next()
+    const mimeType = file.getMimeType()
+    if (!isSupportedImage_(mimeType)) continue
+    images.push({
+      fileId: file.getId(),
+      name: file.getName(),
+      mimeType,
+      order: extractOrder_(file.getName()),
+      url: file.getUrl(),
+    })
+  }
+  images.sort((a, b) => naturalCompare_(a.name, b.name))
+  return {
+    imageCount: images.length,
+    firstImage: images[0] || null,
+  }
 }
 
 function isSupportedImage_(mimeType) {

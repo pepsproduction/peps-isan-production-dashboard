@@ -16,7 +16,7 @@ export function storyboardStatusFromCount(count) {
 }
 
 export function storyboardStatusLabel(status, count = 0) {
-  if (status === 'complete') return `ครบ 6 รูป`
+  if (status === 'complete') return count ? `ครบ ${count} รูป` : 'ครบแล้ว'
   if (status === 'partial') return `มีแล้ว ${count || 1}/6`
   return 'ยังไม่มี'
 }

@@ -95,11 +95,13 @@ const CONFIG = {
 }
 ```
 
-สิ่งที่ควรใส่:
+ตอนนี้ไฟล์นี้ถูกใช้เป็นค่าเริ่มต้นของทุกเครื่องที่เปิดเว็บจาก GitHub Pages แล้ว
 
 - `apiUrl`: ใส่ Web App URL จาก Apps Script หลัง deploy แล้ว เพื่อให้ทุกคนโหลดข้อมูลล่าสุดและ Storyboard proxy ได้โดยไม่ต้องกรอก Settings เอง
 - `mapsApiKey`: ใส่เฉพาะถ้ามี Google Maps Embed API Key
-- ห้ามใส่ passcode ในไฟล์นี้ เพราะไฟล์นี้ถูก publish ไปกับเว็บ
+- ห้ามใส่ editor/admin passcode ในไฟล์นี้ เพราะไฟล์นี้ถูก publish ไปกับเว็บ
+
+การดู Dashboard, Maps และ Storyboard ไม่ต้องใช้ passcode ส่วน passcode ใช้เฉพาะตอนกดบันทึกหรือแก้ข้อมูลกลับ Google Sheet
 
 ถ้า `apiUrl` ยังว่าง เว็บยังดึงข้อมูลจาก Google Sheet แบบ public CSV ได้ แต่การโหลดรูป Storyboard ทีละไฟล์จาก Drive และการบันทึกกลับ Sheet ต้องใช้ Apps Script Web App URL
 

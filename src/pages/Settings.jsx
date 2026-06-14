@@ -28,7 +28,7 @@ export default function Settings({ config, onSave, onClearCache, onRefresh, noti
     <div className="space-y-5">
       <div>
         <h1 className="page-title">Settings</h1>
-        <p className="muted">ตั้งค่า Apps Script API URL, passcode, Google Maps Embed API Key, Demo Mode และ cache</p>
+        <p className="muted">ตั้งค่า Apps Script API URL, passcode สำหรับแก้ข้อมูล, Google Maps Embed API Key, Demo Mode และ cache</p>
       </div>
       <form
         className="card space-y-5 p-5"
@@ -45,6 +45,7 @@ export default function Settings({ config, onSave, onClearCache, onRefresh, noti
           <label className="block">
             <span className="mb-2 block text-sm text-zinc-400">Passcode</span>
             <input className="field" type="password" value={form.passcode || ''} onChange={(event) => setValue('passcode', event.target.value)} placeholder="ใส่ passcode จาก Apps Script" />
+            <span className="mt-2 block text-xs text-zinc-500">ไม่ต้องใส่ passcode สำหรับดูข้อมูล ใช้เฉพาะตอนบันทึก/แก้ไขกลับ Google Sheet</span>
           </label>
           <label className="block">
             <span className="mb-2 block text-sm text-zinc-400">Updated by</span>
