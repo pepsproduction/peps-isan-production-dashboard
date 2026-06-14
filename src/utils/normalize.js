@@ -18,6 +18,20 @@ export function normalizeThai(value) {
     .replace(/\s+/g, '')
 }
 
+export function normalizeChecklistStatusValue(value) {
+  const text = compactText(value)
+  if (!text) return 'ยังไม่ได้เช็ก'
+  if (text.includes('ไม่มีข้อมูลติดต่อ')) return '🔴 ไม่มีข้อมูลติดต่อ'
+  if (text.includes('รอยืนยัน')) return '🟠 รอยืนยัน'
+  if (text.includes('ต้องเช็ก')) return '🟡 ต้องเช็กค่าใช้จ่าย'
+  if (text.includes('พร้อม')) return '✅ พร้อม'
+  return text
+}
+
+export function isChecklistNeedsExpense(status) {
+  return normalizeChecklistStatusValue(status).includes('ต้องเช็ก')
+}
+
 function rowKeys(row) {
   return Object.keys(row || {})
 }
@@ -112,7 +126,7 @@ export function normalizeCommunity(row = {}) {
     lodging: getAny(row, ['lodging', 'ที่พัก', 'R']),
     storyboardLink: usableUrl(getAny(row, ['storyboardLink', 'Link Storyboard_url', 'Link Storyboard', 'S'])),
     storyboardStatus: getAny(row, ['storyboardStatus'], ''),
-    checklistStatus: getAny(row, ['checklistStatus', 'status'], 'ยังไม่ได้เช็ก'),
+    checklistStatus: normalizeChecklistStatusValue(getAny(row, ['checklistStatus', 'สถานะ Checklist'], 'ยังไม่ได้เช็ก')),
     shootingStatus: getAny(row, ['shootingStatus'], 'ยังไม่ได้เช็ก'),
     note: getAny(row, ['note', 'หมายเหตุ']),
     expenseLocation: getAny(row, ['expenseLocation', 'ค่าสถานที่']),
@@ -174,7 +188,7 @@ export function normalizeChecklistItem(row = {}, index = 0, communities = []) {
   const contactRaw = getAny(row, ['contactName', 'ผู้ประสานงาน', 'ผู้ประสานงานในพื้นที่'])
   const extractedPhone = extractPhone(contactRaw)
   const dateRaw = getAny(row, ['date', 'วันที่'], matched?.shootDate || '')
-  const checklistStatus = getAny(row, ['checklistStatus', 'สถานะ Checklist', 'status', 'สถานะ'], 'ยังไม่ได้เช็ก')
+  const checklistStatus = normalizeChecklistStatusValue(getAny(row, ['checklistStatus', 'สถานะ Checklist', 'status'], 'ยังไม่ได้เช็ก'))
   const item = {
     ...row,
     id: getAny(row, ['id', 'ID'], `check-${index + 1}`),
@@ -358,13 +372,14 @@ export function computeStats(data) {
   const storyboardAny = communities.filter((item) => ['complete', 'partial'].includes(item.storyboardStatus)).length
   const missingContacts = communities.filter((item) => !item.contactName && !item.contactPhone).length
   const filmingDone = communities.filter((item) => item.shootingStatus === 'ถ่ายเสร็จแล้ว').length
-  const needsCheck = communities.filter((item) => compactText(item.checkNotes)).length
+  const needsCheckItems = communities.filter((item) => isChecklistNeedsExpense(item.checklistStatus))
+  const needsCheck = needsCheckItems.length
   const risks = [
     ...communities
-      .filter((item) => ['เสี่ยง', 'ต้องเช็ก', 'รอยืนยัน'].includes(item.checklistStatus) || item.checkNotes)
+      .filter((item) => isChecklistNeedsExpense(item.checklistStatus) || normalizeChecklistStatusValue(item.checklistStatus).includes('รอยืนยัน') || normalizeChecklistStatusValue(item.checklistStatus).includes('ไม่มีข้อมูลติดต่อ'))
       .map((item) => ({
         id: `community-${item.id}`,
-        level: item.checklistStatus === 'เสี่ยง' ? 'danger' : 'warning',
+        level: normalizeChecklistStatusValue(item.checklistStatus).includes('ไม่มีข้อมูลติดต่อ') ? 'danger' : 'warning',
         title: `${item.province} - ${item.community}`,
         detail: item.checkNotes || item.checklistStatus,
       })),

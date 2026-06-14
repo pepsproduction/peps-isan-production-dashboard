@@ -6,7 +6,8 @@ import SearchInput from '../components/SearchInput'
 import StoryboardViewer from '../components/StoryboardViewer'
 import { fetchStoryboardImages } from '../api/googleSheetApi'
 import { SHEETS } from '../config'
-import { normalizeThai } from '../utils/normalize'
+import { normalizeChecklistStatusValue, normalizeThai } from '../utils/normalize'
+import { buildExpenseItems } from '../utils/expenses'
 
 export default function Communities({ data, config, copyText, updateRecord, notify }) {
   const communities = useMemo(() => data?.communities || [], [data])
@@ -51,8 +52,16 @@ export default function Communities({ data, config, copyText, updateRecord, noti
   const saveEdit = async (form) => {
     setSaving(true)
     try {
+      const hasUnpaidExpense = buildExpenseItems(form).some((item) => !item.paid)
+      const checklistStatus = !form.contactName && !form.contactPhone
+        ? '🔴 ไม่มีข้อมูลติดต่อ'
+        : hasUnpaidExpense
+          ? '🟡 ต้องเช็กค่าใช้จ่าย'
+          : normalizeChecklistStatusValue(form.checklistStatus).includes('ต้องเช็ก')
+            ? '✅ พร้อม'
+            : normalizeChecklistStatusValue(form.checklistStatus)
       const checklistFields = {
-        checklistStatus: form.checklistStatus,
+        checklistStatus,
         shootingStatus: form.shootingStatus,
         contactName: form.contactName,
         contactPhone: form.contactPhone,
@@ -75,7 +84,7 @@ export default function Communities({ data, config, copyText, updateRecord, noti
             rowKey: editing.id,
             communityId: editing.id,
             fields: {
-              checklistStatus: form.checklistStatus,
+              checklistStatus,
               shootingStatus: form.shootingStatus,
               contactName: form.contactName,
               contactPhone: form.contactPhone,

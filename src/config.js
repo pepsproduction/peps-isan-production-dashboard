@@ -34,13 +34,21 @@ export const NAV_ITEMS = [
   { id: 'settings', label: 'Settings' },
 ]
 
-export const STATUS_OPTIONS = [
+export const CHECKLIST_STATUS_OPTIONS = [
+  '✅ พร้อม',
+  '🟡 ต้องเช็กค่าใช้จ่าย',
+  '🔴 ไม่มีข้อมูลติดต่อ',
+  '🟠 รอยืนยัน',
+]
+
+export const SHOOTING_STATUS_OPTIONS = [
+  'รอยืนยัน',
   'พร้อม',
   'ต้องเช็ก',
-  'รอยืนยัน',
-  'เสี่ยง',
   'ยังไม่ได้เช็ก',
   'กำลังถ่าย',
   'ถ่ายเสร็จแล้ว',
   'ต้องถ่ายซ่อม',
 ]
+
+export const STATUS_OPTIONS = [...CHECKLIST_STATUS_OPTIONS, ...SHOOTING_STATUS_OPTIONS]

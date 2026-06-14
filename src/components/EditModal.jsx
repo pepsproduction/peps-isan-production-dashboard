@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, Save, Trash2, X } from 'lucide-react'
-import { STATUS_OPTIONS } from '../config'
-import { EXPENSE_CHECK_ITEMS, isExpenseDone, normalizeExpenseCustomItems, serializeExpenseCustomItems, toExpenseSheetValue } from '../utils/expenses'
+import { CHECKLIST_STATUS_OPTIONS, SHOOTING_STATUS_OPTIONS } from '../config'
+import { EXPENSE_CHECK_ITEMS, normalizeExpenseCustomItems, parseExpenseValue, serializeExpenseCustomItems, toExpenseSheetValue } from '../utils/expenses'
 
 export default function EditModal({ open, title, record, onClose, onSave, saving = false }) {
   const [form, setForm] = useState({})
@@ -16,9 +16,14 @@ export default function EditModal({ open, title, record, onClose, onSave, saving
         contactPhone: record.contactPhone || '',
         note: record.note || record.checkNotes || '',
         storyboardLink: record.storyboardLink || '',
-        expenseLocation: isExpenseDone(record.expenseLocation),
-        expenseInfluencer: isExpenseDone(record.expenseInfluencer),
-        expenseContent1000: isExpenseDone(record.expenseContent1000),
+        ...Object.fromEntries(EXPENSE_CHECK_ITEMS.flatMap((item) => {
+          const expense = parseExpenseValue(record[item.key])
+          return [
+            [`${item.key}Enabled`, expense.enabled],
+            [`${item.key}Amount`, expense.amount],
+            [`${item.key}Paid`, expense.paid],
+          ]
+        })),
         expenseCustomItems: normalizeExpenseCustomItems(record.expenseCustomItems || record.expenseOther),
       })
       setNewExpenseItem('')
@@ -34,7 +39,7 @@ export default function EditModal({ open, title, record, onClose, onSave, saving
   const addCustomExpense = () => {
     const label = newExpenseItem.trim()
     if (!label) return
-    setValue('expenseCustomItems', [...(form.expenseCustomItems || []), { label, done: false }])
+    setValue('expenseCustomItems', [...(form.expenseCustomItems || []), { label, amount: '', paid: false }])
     setNewExpenseItem('')
   }
   const removeCustomExpense = (index) => {
@@ -43,7 +48,11 @@ export default function EditModal({ open, title, record, onClose, onSave, saving
   const submitForm = () => {
     onSave({
       ...form,
-      ...Object.fromEntries(EXPENSE_CHECK_ITEMS.map((item) => [item.key, toExpenseSheetValue(form[item.key])])),
+      ...Object.fromEntries(EXPENSE_CHECK_ITEMS.map((item) => [item.key, toExpenseSheetValue({
+        enabled: form[`${item.key}Enabled`],
+        amount: form[`${item.key}Amount`],
+        paid: form[`${item.key}Paid`],
+      })])),
       expenseCustomItems: serializeExpenseCustomItems(form.expenseCustomItems),
     })
   }
@@ -71,13 +80,13 @@ export default function EditModal({ open, title, record, onClose, onSave, saving
           <label className="block">
             <span className="mb-2 block text-sm text-zinc-400">สถานะ Checklist</span>
             <select className="field" value={form.checklistStatus || ''} onChange={(event) => setValue('checklistStatus', event.target.value)}>
-              {STATUS_OPTIONS.map((status) => <option key={status}>{status}</option>)}
+              {CHECKLIST_STATUS_OPTIONS.map((status) => <option key={status}>{status}</option>)}
             </select>
           </label>
           <label className="block">
             <span className="mb-2 block text-sm text-zinc-400">สถานะถ่ายทำ</span>
             <select className="field" value={form.shootingStatus || ''} onChange={(event) => setValue('shootingStatus', event.target.value)}>
-              {STATUS_OPTIONS.map((status) => <option key={status}>{status}</option>)}
+              {SHOOTING_STATUS_OPTIONS.map((status) => <option key={status}>{status}</option>)}
             </select>
           </label>
           <label className="block">
@@ -99,34 +108,56 @@ export default function EditModal({ open, title, record, onClose, onSave, saving
           <div className="space-y-3 md:col-span-2">
             <div>
               <p className="text-sm font-semibold text-white">ค่าใช้จ่ายระหว่างชุมชน</p>
-              <p className="text-xs text-zinc-500">ติ๊กเมื่อรายการนั้นเคลียร์สำเร็จ ข้อมูลจะบันทึกลง Checklist_ก่อนถ่าย</p>
+              <p className="text-xs text-zinc-500">ติ๊กเพื่อเปิดรายการ ใส่จำนวนเงิน แล้วติ๊กจ่ายแล้วเมื่อเคลียร์ค่าใช้จ่ายเรียบร้อย</p>
             </div>
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="space-y-2">
               {EXPENSE_CHECK_ITEMS.map((item) => (
-                <label key={item.key} className="flex min-h-12 items-center gap-3 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-100">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 accent-peps"
-                    checked={Boolean(form[item.key])}
-                    onChange={(event) => setValue(item.key, event.target.checked)}
-                  />
-                  {item.label}
-                </label>
+                <div key={item.key} className="rounded-md border border-white/10 bg-white/5 p-3">
+                  <label className="flex items-center gap-3 text-sm font-semibold text-zinc-100">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-peps"
+                      checked={Boolean(form[`${item.key}Enabled`])}
+                      onChange={(event) => setValue(`${item.key}Enabled`, event.target.checked)}
+                    />
+                    {item.label}
+                  </label>
+                  {form[`${item.key}Enabled`] ? (
+                    <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
+                      <input
+                        className="field"
+                        value={form[`${item.key}Amount`] || ''}
+                        onChange={(event) => setValue(`${item.key}Amount`, event.target.value)}
+                        placeholder="จำนวนเงิน เช่น 2000 หรือ 2000-2500"
+                      />
+                      <label className="flex min-h-10 items-center gap-2 rounded-md border border-white/10 px-3 text-sm text-zinc-300">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 accent-peps"
+                          checked={Boolean(form[`${item.key}Paid`])}
+                          onChange={(event) => setValue(`${item.key}Paid`, event.target.checked)}
+                        />
+                        จ่ายแล้ว
+                      </label>
+                    </div>
+                  ) : null}
+                </div>
               ))}
             </div>
             <div className="space-y-2">
               {(form.expenseCustomItems || []).map((item, index) => (
-                <div key={`${item.label}-${index}`} className="grid gap-2 sm:grid-cols-[auto_1fr_auto] sm:items-center">
+                <div key={`${item.label}-${index}`} className="grid gap-2 rounded-md border border-white/10 bg-white/5 p-3 sm:grid-cols-[1fr_160px_auto_auto] sm:items-center">
+                  <input className="field" value={item.label} onChange={(event) => setCustomExpense(index, { label: event.target.value })} placeholder="ชื่อรายการ" />
+                  <input className="field" value={item.amount || ''} onChange={(event) => setCustomExpense(index, { amount: event.target.value })} placeholder="จำนวนเงิน" />
                   <label className="flex items-center gap-2 text-sm text-zinc-300">
                     <input
                       type="checkbox"
                       className="h-4 w-4 accent-peps"
-                      checked={Boolean(item.done)}
-                      onChange={(event) => setCustomExpense(index, { done: event.target.checked })}
+                      checked={Boolean(item.paid)}
+                      onChange={(event) => setCustomExpense(index, { paid: event.target.checked })}
                     />
-                    สำเร็จ
+                    จ่ายแล้ว
                   </label>
-                  <input className="field" value={item.label} onChange={(event) => setCustomExpense(index, { label: event.target.value })} />
                   <button type="button" className="btn btn-ghost px-3" onClick={() => removeCustomExpense(index)} aria-label="ลบรายการค่าใช้จ่าย">
                     <Trash2 size={16} />
                   </button>

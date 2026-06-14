@@ -6,9 +6,10 @@ import FilterChips from '../components/FilterChips'
 import LinkButton from '../components/LinkButton'
 import ExpenseSummary from '../components/ExpenseSummary'
 import { SHEETS } from '../config'
-import { normalizeThai } from '../utils/normalize'
+import { normalizeChecklistStatusValue, normalizeThai } from '../utils/normalize'
 import { phoneHref } from '../utils/phone'
 import { formatThaiDate, uniqueDates } from '../utils/date'
+import { buildExpenseItems } from '../utils/expenses'
 import { CalendarDays, Edit3, Phone } from 'lucide-react'
 
 function buildWorkWeeks(dates = []) {
@@ -73,8 +74,16 @@ export default function Checklist({ data, updateRecord }) {
   const saveEdit = async (form) => {
     setSaving(true)
     try {
+      const hasUnpaidExpense = buildExpenseItems(form).some((item) => !item.paid)
+      const checklistStatus = !form.contactName && !form.contactPhone
+        ? '🔴 ไม่มีข้อมูลติดต่อ'
+        : hasUnpaidExpense
+          ? '🟡 ต้องเช็กค่าใช้จ่าย'
+          : normalizeChecklistStatusValue(form.checklistStatus).includes('ต้องเช็ก')
+            ? '✅ พร้อม'
+            : normalizeChecklistStatusValue(form.checklistStatus)
       const checklistFields = {
-        checklistStatus: form.checklistStatus,
+        checklistStatus,
         shootingStatus: form.shootingStatus,
         contactName: form.contactName,
         contactPhone: form.contactPhone,
@@ -97,7 +106,7 @@ export default function Checklist({ data, updateRecord }) {
             rowKey: editing.communityId,
             communityId: editing.communityId,
             fields: {
-              checklistStatus: form.checklistStatus,
+              checklistStatus,
               shootingStatus: form.shootingStatus,
               contactName: form.contactName,
               contactPhone: form.contactPhone,

@@ -4,10 +4,43 @@ import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis
 import StatCard from '../components/StatCard'
 import StatusBadge from '../components/StatusBadge'
 import LinkButton from '../components/LinkButton'
-import { groupCount } from '../utils/normalize'
+import { groupCount, isChecklistNeedsExpense, normalizeChecklistStatusValue } from '../utils/normalize'
 import { formatThaiDate, todayInput, uniqueDates } from '../utils/date'
 import { makeMapsUrl } from '../utils/maps'
 import { buildTimelineCopy } from '../utils/copy'
+
+function communityLabel(community) {
+  return `${community.province || '-'} - ${community.community || '-'}`
+}
+
+function uniqueList(items) {
+  return Array.from(new Set(items.filter(Boolean)))
+}
+
+function dashboardStatDetails({ communities, timeline, lodging }) {
+  const byDate = new Map()
+  communities.forEach((community) => {
+    if (!community.shootDate) return
+    if (!byDate.has(community.shootDate)) byDate.set(community.shootDate, [])
+    byDate.get(community.shootDate).push(communityLabel(community))
+  })
+  return {
+    provinces: groupCount(communities, 'province').map((item) => `${item.name} (${item.value} ชุมชน)`),
+    communities: communities.map(communityLabel),
+    shootDays: Array.from(byDate, ([date, rows]) => `${formatThaiDate(date)}: ${rows.join(', ')}`),
+    lodging: uniqueList([
+      ...lodging.map((item) => item.name || item.lodgingName),
+      ...communities.map((item) => item.lodging),
+    ]),
+    storyboardAny: communities.filter((item) => ['complete', 'partial'].includes(item.storyboardStatus)).map(communityLabel),
+    storyboardMissing: communities.filter((item) => !['complete', 'partial'].includes(item.storyboardStatus)).map(communityLabel),
+    missingContacts: communities.filter((item) => !item.contactName && !item.contactPhone).map(communityLabel),
+    needsCheck: communities
+      .filter((item) => isChecklistNeedsExpense(item.checklistStatus))
+      .map((item) => `${communityLabel(item)} (${normalizeChecklistStatusValue(item.checklistStatus)})`),
+    timeline: timeline.map((item) => `${formatThaiDate(item.date, item.day)}: ${item.morningTitle || '-'} / ${item.afternoonTitle || '-'}`),
+  }
+}
 
 function Progress({ label, value, total, color = 'bg-peps' }) {
   const percent = total ? Math.round((value / total) * 100) : 0
@@ -130,6 +163,8 @@ export default function Dashboard({ data, loading, error, copyText, onNavigate }
   const stats = data?.stats || {}
   const communities = useMemo(() => data?.communities || [], [data])
   const timeline = useMemo(() => data?.timeline || [], [data])
+  const lodging = useMemo(() => data?.lodging || [], [data])
+  const statDetails = useMemo(() => dashboardStatDetails({ communities, timeline, lodging }), [communities, timeline, lodging])
   const provinceData = useMemo(() => groupCount(communities, 'province').slice(0, 8), [communities])
   const contentData = useMemo(() => groupCount(communities, 'content'), [communities])
   const contentChartHeight = Math.max(320, contentData.length * 42)
@@ -162,14 +197,14 @@ export default function Dashboard({ data, loading, error, copyText, onNavigate }
       <DashboardToday timeline={timeline} communities={communities} copyText={copyText} onNavigate={onNavigate} />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="จำนวนจังหวัดทั้งหมด" value={stats.provinces || 0} icon={MapPinned} tone="orange" />
-        <StatCard label="จำนวนชุมชนทั้งหมด" value={stats.communities || 0} icon={Users} tone="gold" />
-        <StatCard label="จำนวนวันถ่ายทั้งหมด" value={stats.shootDays || 0} icon={Film} tone="blue" />
-        <StatCard label="จำนวนที่พัก" value={stats.lodging || 0} icon={Hotel} tone="green" />
-        <StatCard label="Storyboard ที่มีแล้ว" value={stats.storyboardAny || 0} icon={Images} tone="green" />
-        <StatCard label="Storyboard ที่ยังไม่มี" value={stats.storyboardMissing || 0} icon={Images} tone="red" />
-        <StatCard label="ไม่มีข้อมูลติดต่อ" value={stats.missingContacts || 0} icon={AlertTriangle} tone="red" />
-        <StatCard label="ต้องเช็ก" value={stats.needsCheck || 0} icon={CheckCircle2} tone="gold" />
+        <StatCard label="จำนวนจังหวัดทั้งหมด" value={stats.provinces || 0} icon={MapPinned} tone="orange" details={statDetails.provinces} />
+        <StatCard label="จำนวนชุมชนทั้งหมด" value={stats.communities || 0} icon={Users} tone="gold" details={statDetails.communities} />
+        <StatCard label="จำนวนวันถ่ายทั้งหมด" value={stats.shootDays || 0} icon={Film} tone="blue" details={statDetails.shootDays.length ? statDetails.shootDays : statDetails.timeline} />
+        <StatCard label="จำนวนที่พัก" value={stats.lodging || 0} icon={Hotel} tone="green" details={statDetails.lodging} />
+        <StatCard label="Storyboard ที่มีแล้ว" value={stats.storyboardAny || 0} icon={Images} tone="green" details={statDetails.storyboardAny} />
+        <StatCard label="Storyboard ที่ยังไม่มี" value={stats.storyboardMissing || 0} icon={Images} tone="red" details={statDetails.storyboardMissing} />
+        <StatCard label="ไม่มีข้อมูลติดต่อ" value={stats.missingContacts || 0} icon={AlertTriangle} tone="red" details={statDetails.missingContacts} />
+        <StatCard label="ต้องเช็กค่าใช้จ่าย" value={stats.needsCheck || 0} icon={CheckCircle2} tone="gold" details={statDetails.needsCheck} />
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">

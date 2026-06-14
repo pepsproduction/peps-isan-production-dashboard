@@ -48,10 +48,10 @@ export const demoCommunities = communitySeed.map((row, index) => {
     checklistStatus,
     shootingStatus: index < 2 ? 'ถ่ายเสร็จแล้ว' : index === 2 ? 'กำลังถ่าย' : 'ยังไม่ได้เช็ก',
     note: index === 5 ? 'เส้นทางมีช่วงริมแม่น้ำ ควรเผื่อเวลาเดินทาง' : '',
-    expenseLocation: index % 3 === 0 ? 'สำเร็จ' : '',
-    expenseInfluencer: index % 4 === 0 ? 'สำเร็จ' : '',
-    expenseContent1000: index % 2 === 0 ? 'สำเร็จ' : '',
-    expenseCustomItems: index === 0 ? '[x] ค่าเรือ\n[ ] ค่าอาหารทีม' : '',
+    expenseLocation: index % 3 === 0 ? `${2000 + index * 100} | ${index % 2 === 0 ? 'จ่ายแล้ว' : 'ยังไม่จ่าย'}` : '',
+    expenseInfluencer: index % 4 === 0 ? `1500 | ยังไม่จ่าย` : '',
+    expenseContent1000: index % 2 === 0 ? `1000 | จ่ายแล้ว` : '',
+    expenseCustomItems: index === 0 ? '[x] ค่าเรือ: 800\n[ ] ค่าอาหารทีม: 1200' : '',
   }
 })
 
