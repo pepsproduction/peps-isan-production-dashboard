@@ -1,9 +1,8 @@
 name: Deploy GitHub Pages
 
 on:
-  push:
-    branches:
-      - main
+  # Run manually only. GitHub Pages for this repo publishes the committed /docs build.
+  # Hosted Actions may not be available on this account, so update /docs before pushing.
   workflow_dispatch:
 
 permissions:
