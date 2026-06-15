@@ -7,6 +7,7 @@ const SHEET_EXPORTS = {
   lodging: SHEETS.lodging,
   maps: SHEETS.maps,
   references: SHEETS.references,
+  expenses: SHEETS.expenses,
 }
 
 function csvUrl(sheetName) {

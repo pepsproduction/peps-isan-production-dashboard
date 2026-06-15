@@ -14,6 +14,7 @@ const SHEETS = {
   references: 'Reference_แหล่งข้อมูล',
   lodging: 'ที่พัก_Master',
   maps: 'Map_Master',
+  expenses: 'รายจ่าย',
 }
 
 const EDITOR_FIELDS = [
@@ -22,6 +23,9 @@ const EDITOR_FIELDS = [
   'shootingStatus',
   'contactName',
   'contactPhone',
+  'shootDate',
+  'startTime',
+  'endTime',
   'note',
   'checkNotes',
   'storyboardLink',
@@ -85,6 +89,7 @@ function getAppData_() {
   const lodging = getLodging_()
   const maps = getMaps_()
   const references = sheetExists_(SHEETS.references) ? getSheetRows_(SHEETS.references) : []
+  const expenses = sheetExists_(SHEETS.expenses) ? getSheetRows_(SHEETS.expenses) : []
   const storyboardFolders = getStoryboardFolders_(communities)
   const stats = {
     communities: communities.length,
@@ -100,6 +105,7 @@ function getAppData_() {
     lodging,
     maps,
     references,
+    expenses,
     storyboardFolders,
     stats,
     fetchedAt: new Date().toISOString(),
@@ -420,6 +426,7 @@ function updateOneField_(body, role, defaultSheetName) {
   const header = fieldHeader_(sheetName, fieldName)
   setCellByHeader_(row.sheet, row.rowNumber, header, value)
   writeAudit_(row.sheet, row.rowNumber, body.updatedBy, body.updatedAt)
+  if (sheetName === SHEETS.communities && isScheduleField_(fieldName)) renumberCommunitiesBySchedule_()
   return { ok: true, action: body.action, sheetName, rowNumber: row.rowNumber, fieldName, value }
 }
 
@@ -442,6 +449,7 @@ function batchUpdateFields_(body, role) {
     setCellByHeader_(row.sheet, row.rowNumber, fieldHeader_(sheetName, fieldName), fields[fieldName])
   })
   writeAudit_(row.sheet, row.rowNumber, body.updatedBy, body.updatedAt)
+  if (sheetName === SHEETS.communities && Object.keys(fields).some(isScheduleField_)) renumberCommunitiesBySchedule_()
   return { ok: true, sheetName, rowNumber: row.rowNumber, fields: Object.keys(fields) }
 }
 
@@ -467,6 +475,9 @@ function fieldHeader_(sheetName, fieldName) {
     shootingStatus: 'สถานะถ่ายทำ',
     contactName: sheetName === SHEETS.checklist ? 'ผู้ประสานงาน' : 'ผู้ประสานงานในพื้นที่',
     contactPhone: 'เบอร์โทร',
+    shootDate: 'วันที่ไป',
+    startTime: 'ช่วงเวลาเริ่มถ่าย',
+    endTime: 'ช่วงเวลาถ่ายจบ',
     note: 'หมายเหตุ',
     checkNotes: 'ข้อควรเช็ค',
     storyboardLink: 'Link Storyboard',
@@ -486,6 +497,39 @@ function setCellByHeader_(sheet, rowNumber, header, value) {
 function writeAudit_(sheet, rowNumber, updatedBy, updatedAt) {
   if (updatedBy) setCellByHeader_(sheet, rowNumber, 'updatedBy', updatedBy)
   setCellByHeader_(sheet, rowNumber, 'updatedAt', updatedAt || new Date().toISOString())
+}
+
+function isScheduleField_(fieldName) {
+  return ['shootDate', 'startTime', 'endTime'].indexOf(fieldName) !== -1
+}
+
+function scheduleDateSortValue_(value) {
+  return normalizeDate_(value) || '9999-12-31'
+}
+
+function scheduleTimeSortValue_(value) {
+  const match = String(value || '').match(/(\d{1,2})[:.](\d{2})/)
+  if (!match) return 9999
+  return Number(match[1]) * 60 + Number(match[2])
+}
+
+function renumberCommunitiesBySchedule_() {
+  const sheet = getSheet_(SHEETS.communities)
+  const rows = getSheetRows_(SHEETS.communities)
+    .filter((row) => getAny_(row, ['จังหวัด', 'province']) && getAny_(row, ['ชุมชน', 'community']))
+    .sort((a, b) => {
+      const dateCompare = scheduleDateSortValue_(getAny_(a, ['วันที่ไป', 'shootDate']))
+        .localeCompare(scheduleDateSortValue_(getAny_(b, ['วันที่ไป', 'shootDate'])))
+      if (dateCompare !== 0) return dateCompare
+      const timeCompare = scheduleTimeSortValue_(getAny_(a, ['ช่วงเวลาเริ่มถ่าย', 'startTime'])) -
+        scheduleTimeSortValue_(getAny_(b, ['ช่วงเวลาเริ่มถ่าย', 'startTime']))
+      if (timeCompare !== 0) return timeCompare
+      return Number(a._rowNumber) - Number(b._rowNumber)
+    })
+  const sequenceColumn = getOrCreateHeaderColumn_(sheet, 'ลำดับถ่ายใหม่')
+  rows.forEach((row, index) => {
+    sheet.getRange(row._rowNumber, sequenceColumn).setValue(String(index + 1).padStart(2, '0'))
+  })
 }
 
 function getOrCreateHeaderColumn_(sheet, header) {

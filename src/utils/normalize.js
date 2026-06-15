@@ -356,6 +356,7 @@ export function normalizeAppData(raw = {}) {
     lodging,
     maps,
     references: raw.references || [],
+    expenses: raw.expenses || [],
     storyboardFolders: raw.storyboardFolders || [],
     unmatchedStoryboardFolders: storyboardIndex.unmatched,
     stats: computeStats({ ...raw, communities: communitiesWithStoryboard, timeline, lodging, maps }),

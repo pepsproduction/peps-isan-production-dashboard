@@ -7,17 +7,108 @@ import Timeline from './pages/Timeline'
 import Communities from './pages/Communities'
 import Storyboards from './pages/Storyboards'
 import Checklist from './pages/Checklist'
+import Expenses from './pages/Expenses'
 import Lodging from './pages/Lodging'
 import Maps from './pages/Maps'
 import Settings from './pages/Settings'
-import { NAV_ITEMS } from './config'
+import { NAV_ITEMS, SHEETS } from './config'
 import { fetchAppData, sendUpdate } from './api/googleSheetApi'
 import { clearCache, loadCachedData, loadConfig, saveConfig } from './api/localCache'
 import { loadPublicConfig, mergePublicConfig } from './api/publicConfig'
+import { buildExpenseItems, getExpenseProgress } from './utils/expenses'
+import { computeStats } from './utils/normalize'
 
 function getInitialPage() {
   const page = window.location.hash.replace('#/', '') || 'dashboard'
   return NAV_ITEMS.some((item) => item.id === page) ? page : 'dashboard'
+}
+
+function itemMatchesUpdate(item, update) {
+  const rowKey = update.rowKey ? String(update.rowKey) : ''
+  const communityId = update.communityId ? String(update.communityId) : ''
+  const candidates = [
+    item.id,
+    item.communityId,
+    item.rowNumber,
+    item._rowNumber,
+    item.checklistId,
+    item.checklistRowNumber,
+  ].filter((value) => value !== undefined && value !== null).map(String)
+  return Boolean((rowKey && candidates.includes(rowKey)) || (communityId && candidates.includes(communityId)))
+}
+
+function patchExpenseMeta(item) {
+  const expenseItems = buildExpenseItems(item)
+  return {
+    ...item,
+    expenseItems,
+    expenseProgress: getExpenseProgress(expenseItems),
+  }
+}
+
+function patchItem(item, fields, mirrorSchedule = false) {
+  const next = {
+    ...item,
+    ...fields,
+  }
+  if (fields.checklistStatus !== undefined) next.status = fields.checklistStatus
+  if (mirrorSchedule && fields.shootDate !== undefined) next.date = fields.shootDate
+  return patchExpenseMeta(next)
+}
+
+function applyLocalUpdate(currentData, payload) {
+  if (!currentData || !payload) return currentData
+  const updates = Array.isArray(payload.updates) ? payload.updates : [payload]
+  let communities = currentData.communities || []
+  let checklist = currentData.checklist || []
+
+  updates.forEach((update) => {
+    const fields = update?.fields || {}
+    if (!update || !Object.keys(fields).length) return
+    const isChecklistUpdate = update.sheetName === SHEETS.checklist
+    const isCommunityUpdate = update.sheetName === SHEETS.communities
+
+    if (isChecklistUpdate || !isCommunityUpdate) {
+      checklist = checklist.map((item) => (itemMatchesUpdate(item, update) ? patchItem(item, fields, true) : item))
+    }
+
+    if (isCommunityUpdate || !isChecklistUpdate) {
+      communities = communities.map((item) => (itemMatchesUpdate(item, update) ? patchItem(item, fields, false) : item))
+    }
+
+    const sharedFields = {
+      checklistStatus: fields.checklistStatus,
+      shootingStatus: fields.shootingStatus,
+      contactName: fields.contactName,
+      contactPhone: fields.contactPhone,
+      note: fields.note,
+      shootDate: fields.shootDate,
+      startTime: fields.startTime,
+      endTime: fields.endTime,
+      expenseLocation: fields.expenseLocation,
+      expenseInfluencer: fields.expenseInfluencer,
+      expenseContent1000: fields.expenseContent1000,
+      expenseCustomItems: fields.expenseCustomItems,
+    }
+    Object.keys(sharedFields).forEach((key) => {
+      if (sharedFields[key] === undefined) delete sharedFields[key]
+    })
+    if (Object.keys(sharedFields).length && update.communityId) {
+      const mirrorUpdate = { ...update, rowKey: update.communityId }
+      communities = communities.map((item) => (itemMatchesUpdate(item, mirrorUpdate) ? patchItem(item, sharedFields, false) : item))
+      checklist = checklist.map((item) => (itemMatchesUpdate(item, mirrorUpdate) ? patchItem(item, sharedFields, true) : item))
+    }
+  })
+
+  const nextData = {
+    ...currentData,
+    communities,
+    checklist,
+  }
+  return {
+    ...nextData,
+    stats: computeStats(nextData),
+  }
 }
 
 export default function App() {
@@ -50,8 +141,11 @@ export default function App() {
   const refreshData = useCallback(
     async (options = {}) => {
       if (!configReady && !options.force) return
-      setLoading(true)
-      setError('')
+      const silent = Boolean(options.silent)
+      if (!silent) {
+        setLoading(true)
+        setError('')
+      }
       try {
         const result = await fetchAppData(config)
         setData(result.data)
@@ -59,6 +153,10 @@ export default function App() {
         setLastUpdated(new Date().toISOString())
         if (options.manual) notify(result.mode === 'demo' ? 'โหลด Demo Mode แล้ว' : 'ดึงข้อมูลล่าสุดแล้ว')
       } catch (err) {
+        if (silent) {
+          console.warn(err)
+          return
+        }
         const cached = loadCachedData()
         if (cached?.data) {
           setData(cached.data)
@@ -72,7 +170,7 @@ export default function App() {
           setError(`API ใช้งานไม่ได้ จึง fallback เป็น Demo Mode: ${err.message}`)
         }
       } finally {
-        setLoading(false)
+        if (!silent) setLoading(false)
       }
     },
     [config, configReady, notify],
@@ -121,11 +219,19 @@ export default function App() {
   )
 
   const updateRecord = useCallback(async (action, payload) => {
-    const result = await sendUpdate(serviceConfig, action, payload)
-    notify(result.demo ? 'Demo Mode: จำลองการบันทึกแล้ว' : 'บันทึกกลับ Google Sheet แล้ว')
-    await refreshData()
-    return result
-  }, [serviceConfig, notify, refreshData])
+    const previousData = data
+    setData((currentData) => applyLocalUpdate(currentData, payload))
+    try {
+      const result = await sendUpdate(serviceConfig, action, payload)
+      notify(result.demo ? 'Demo Mode: จำลองการบันทึกแล้ว' : 'บันทึกกลับ Google Sheet แล้ว')
+      refreshData({ force: true, silent: true }).catch((err) => console.warn(err))
+      return result
+    } catch (err) {
+      setData(previousData)
+      notify(`บันทึกไม่สำเร็จ: ${err.message}`, 'error')
+      throw err
+    }
+  }, [data, serviceConfig, notify, refreshData])
 
   const pageProps = useMemo(
     () => ({
@@ -150,6 +256,7 @@ export default function App() {
     communities: <Communities {...pageProps} />,
     storyboards: <Storyboards {...pageProps} />,
     checklist: <Checklist {...pageProps} />,
+    expenses: <Expenses {...pageProps} />,
     lodging: <Lodging {...pageProps} />,
     maps: <Maps {...pageProps} />,
     settings: (

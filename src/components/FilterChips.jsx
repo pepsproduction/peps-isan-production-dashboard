@@ -1,4 +1,4 @@
-export default function FilterChips({ options = [], value, onChange, allLabel = 'ทั้งหมด' }) {
+export default function FilterChips({ options = [], value, onChange, allLabel = 'ทั้งหมด', labelMap = {} }) {
   return (
     <div className="flex gap-2 overflow-x-auto pb-1">
       <button
@@ -15,7 +15,7 @@ export default function FilterChips({ options = [], value, onChange, allLabel = 
           className={`chip shrink-0 ${value === option ? 'border-peps bg-peps text-black' : 'bg-white/5'}`}
           onClick={() => onChange(option)}
         >
-          {option}
+          {labelMap[option] || option}
         </button>
       ))}
     </div>

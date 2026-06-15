@@ -4,11 +4,37 @@ export const EXPENSE_CHECK_ITEMS = [
   { key: 'expenseContent1000', label: 'ค่า content 1000' },
 ]
 
+export const EXPENSE_SUMMARY_CATEGORIES = [
+  ...EXPENSE_CHECK_ITEMS,
+  { key: 'other', label: 'อื่นๆ' },
+]
+
 const PAID_TEXT = 'จ่ายแล้ว'
 const UNPAID_TEXT = 'ยังไม่จ่าย'
 
 function cleanAmount(value) {
   return String(value ?? '').replace(/[|]+/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+export function parseExpenseAmountRange(value) {
+  const text = cleanAmount(value).replace(/,/g, '')
+  if (!text) return { min: 0, max: 0, hasAmount: false }
+
+  const rangeMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:-|–|—|ถึง|to)\s*(\d+(?:\.\d+)?)/i)
+  if (rangeMatch) {
+    const first = Number(rangeMatch[1])
+    const second = Number(rangeMatch[2])
+    if (Number.isFinite(first) && Number.isFinite(second)) {
+      return { min: Math.min(first, second), max: Math.max(first, second), hasAmount: true }
+    }
+  }
+
+  const numberMatch = text.match(/\d+(?:\.\d+)?/)
+  if (!numberMatch) return { min: 0, max: 0, hasAmount: false }
+  const amount = Number(numberMatch[0])
+  return Number.isFinite(amount)
+    ? { min: amount, max: amount, hasAmount: true }
+    : { min: 0, max: 0, hasAmount: false }
 }
 
 export function isExpensePaid(value) {
@@ -93,6 +119,7 @@ export function buildExpenseItems(record = {}) {
     .map((item) => ({
       ...item,
       ...parseExpenseValue(record[item.key]),
+      category: item.key,
       custom: false,
     }))
     .filter((item) => item.enabled)
@@ -102,19 +129,21 @@ export function buildExpenseItems(record = {}) {
     enabled: true,
     amount: item.amount,
     paid: item.paid,
+    category: 'other',
     custom: true,
   }))
-  return [...defaultItems, ...customItems]
+  return [...defaultItems, ...customItems].map((item) => ({
+    ...item,
+    amountRange: parseExpenseAmountRange(item.amount),
+  }))
 }
 
 export function getExpenseProgress(items = []) {
   const total = items.filter((item) => item.label).length
   const paid = items.filter((item) => item.label && item.paid).length
   const amountTotal = items.reduce((sum, item) => {
-    const amount = String(item.amount || '').replace(/,/g, '').trim()
-    if (!/^\d+(?:\.\d+)?$/.test(amount)) return sum
-    const numeric = Number(amount)
-    return Number.isFinite(numeric) ? sum + numeric : sum
+    const range = item.amountRange || parseExpenseAmountRange(item.amount)
+    return range.hasAmount ? sum + range.max : sum
   }, 0)
   return {
     paid,
@@ -122,4 +151,72 @@ export function getExpenseProgress(items = []) {
     amountTotal,
     percent: total ? Math.round((paid / total) * 100) : 0,
   }
+}
+
+function createSummary(label) {
+  return {
+    label,
+    itemCount: 0,
+    paidCount: 0,
+    unpaidCount: 0,
+    minTotal: 0,
+    maxTotal: 0,
+    communities: [],
+  }
+}
+
+export function summarizeExpenses(records = []) {
+  const categoryMap = Object.fromEntries(
+    EXPENSE_SUMMARY_CATEGORIES.map((category) => [category.key, createSummary(category.label)]),
+  )
+  const rows = records.map((record, index) => {
+    const items = buildExpenseItems(record)
+    items.forEach((item) => {
+      const categoryKey = item.category || (item.custom ? 'other' : item.key)
+      const summary = categoryMap[categoryKey] || categoryMap.other
+      const range = item.amountRange || parseExpenseAmountRange(item.amount)
+      summary.itemCount += 1
+      summary.paidCount += item.paid ? 1 : 0
+      summary.unpaidCount += item.paid ? 0 : 1
+      summary.minTotal += range.hasAmount ? range.min : 0
+      summary.maxTotal += range.hasAmount ? range.max : 0
+      summary.communities.push({
+        id: record.id || record.communityId || `${record.province}-${record.community}-${index}`,
+        province: record.province,
+        community: record.community,
+        label: item.label,
+        amount: item.amount,
+        paid: item.paid,
+      })
+    })
+    return {
+      ...record,
+      expenseItems: items,
+      expenseIndex: index + 1,
+    }
+  })
+
+  const categories = EXPENSE_SUMMARY_CATEGORIES.map((category) => ({
+    key: category.key,
+    ...categoryMap[category.key],
+  }))
+  const total = categories.reduce(
+    (summary, category) => ({
+      itemCount: summary.itemCount + category.itemCount,
+      paidCount: summary.paidCount + category.paidCount,
+      unpaidCount: summary.unpaidCount + category.unpaidCount,
+      minTotal: summary.minTotal + category.minTotal,
+      maxTotal: summary.maxTotal + category.maxTotal,
+    }),
+    { itemCount: 0, paidCount: 0, unpaidCount: 0, minTotal: 0, maxTotal: 0 },
+  )
+
+  return { rows, categories, total }
+}
+
+export function formatMoneyRange(min, max) {
+  const formatter = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 0 })
+  if (!min && !max) return '0'
+  if (min === max) return formatter.format(max)
+  return `${formatter.format(min)} - ${formatter.format(max)}`
 }

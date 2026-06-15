@@ -14,6 +14,9 @@ export default function EditModal({ open, title, record, onClose, onSave, saving
         shootingStatus: record.shootingStatus || 'ยังไม่ได้เช็ก',
         contactName: record.contactName || '',
         contactPhone: record.contactPhone || '',
+        shootDate: record.shootDate || record.date || '',
+        startTime: record.startTime || '',
+        endTime: record.endTime || '',
         note: record.note || record.checkNotes || '',
         storyboardLink: record.storyboardLink || '',
         ...Object.fromEntries(EXPENSE_CHECK_ITEMS.flatMap((item) => {
@@ -96,6 +99,18 @@ export default function EditModal({ open, title, record, onClose, onSave, saving
           <label className="block">
             <span className="mb-2 block text-sm text-zinc-400">เบอร์โทร</span>
             <input className="field" value={form.contactPhone || ''} onChange={(event) => setValue('contactPhone', event.target.value)} />
+          </label>
+          <label className="block">
+            <span className="mb-2 block text-sm text-zinc-400">วันที่ถ่าย</span>
+            <input type="date" className="field" value={form.shootDate || ''} onChange={(event) => setValue('shootDate', event.target.value)} />
+          </label>
+          <label className="block">
+            <span className="mb-2 block text-sm text-zinc-400">เวลาเริ่มถ่าย</span>
+            <input className="field" value={form.startTime || ''} onChange={(event) => setValue('startTime', event.target.value)} placeholder="07:00" />
+          </label>
+          <label className="block">
+            <span className="mb-2 block text-sm text-zinc-400">เวลาถ่ายจบ</span>
+            <input className="field" value={form.endTime || ''} onChange={(event) => setValue('endTime', event.target.value)} placeholder="11:30" />
           </label>
           <label className="block md:col-span-2">
             <span className="mb-2 block text-sm text-zinc-400">Link Storyboard</span>

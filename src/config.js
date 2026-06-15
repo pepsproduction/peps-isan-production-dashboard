@@ -11,7 +11,11 @@ export const SHEETS = {
   references: 'Reference_แหล่งข้อมูล',
   lodging: 'ที่พัก_Master',
   maps: 'Map_Master',
+  expenses: 'รายจ่าย',
 }
+
+export const EXPENSE_SHEET_GID = '9000008'
+export const EXPENSE_SHEET_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit#gid=${EXPENSE_SHEET_GID}`
 
 export const DEFAULT_CONFIG = {
   apiUrl: import.meta.env.VITE_APPS_SCRIPT_API_URL || '',
@@ -29,6 +33,7 @@ export const NAV_ITEMS = [
   { id: 'communities', label: 'Communities' },
   { id: 'storyboards', label: 'Storyboards' },
   { id: 'checklist', label: 'Checklist' },
+  { id: 'expenses', label: 'Expenses' },
   { id: 'lodging', label: 'Lodging' },
   { id: 'maps', label: 'Maps' },
   { id: 'settings', label: 'Settings' },
